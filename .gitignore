@@ -427,3 +427,26 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+
+# Adicoes Visual Studio
+.vs/
+out/
+build/
+x64/
+x86/
+Debug/
+Release/
+*.user
+*.suo
+*.userosv
+*.sln.docstates
+
+# Adicoes CMake e Binários gerados
+CMakeSettings.json
+*.exe
+*.dll
+*.obj
+*.o
+*.lib
+*.a
