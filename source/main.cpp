@@ -7,7 +7,7 @@
 int main() {
     // Configurações da Janela Nativa (Raylib)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(1280, 720, "Simulador de SO - Projeto A");
+    InitWindow(1280, 720, "Simulador de Escalonamento - Projeto A");
     SetTargetFPS(60);
 
     // Inicializa a integração do ImGui
