@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(SimuladorSO CXX C)
+project(SimuladorEscalonamento CXX C)
 
 # Padrão C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -48,19 +48,19 @@ target_include_directories(rlimgui_static PUBLIC ${rlimgui_SOURCE_DIR} ${imgui_S
 target_link_libraries(rlimgui_static PUBLIC raylib imgui_static)
 
 # Definição do Executável Principal
-add_executable(SimuladorSO
+add_executable(SimuladorEscalonamento
     src/main.cpp
 )
 
 # Inclusão dos diretórios de cabeçalho
-target_include_directories(SimuladorSO PRIVATE
+target_include_directories(SimuladorEscalonamento PRIVATE
     src
     ${imgui_SOURCE_DIR}
     ${rlimgui_SOURCE_DIR}
 )
 
 # Linkagem Estática dos Módulos no Executável Único
-target_link_libraries(SimuladorSO PRIVATE
+target_link_libraries(SimuladorEscalonamento PRIVATE
     raylib
     imgui_static
     rlimgui_static
