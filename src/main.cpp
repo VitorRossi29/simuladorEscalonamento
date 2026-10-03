@@ -4,6 +4,10 @@
 #include "imgui.h"
 #include "rlImGui.h"
 
+#include "core/Tarefa.hpp"
+#include "core/Metricas.hpp"
+#include "core/MotorSimulaçao.hpp"
+
 int main() {
     // Configurações da Janela Nativa (Raylib)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
