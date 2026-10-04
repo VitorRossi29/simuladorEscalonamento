@@ -19,14 +19,12 @@ struct Tarefa
 {
 private:
     //estáticos
-    static short int proximoId;
     short int id;
 
-    std::string nome;
-    int tempoDeComputacao;
+    int duracao;
     int periodo;
-    int deadlineRelativo;
-    int inicio;
+    int prazo;
+    int ingresso;
     short int prioridadeEstatica;
 	std::string cor;
 
@@ -40,15 +38,15 @@ private:
 
 public:
     Tarefa();
-	Tarefa(std::string nome, int tempoDeComputacao, int periodo, int deadlineRelativo, int inicio, short int prioridadeEstatica, std::string cor);
+	Tarefa(short int id, int duracao, int periodo, int prazo, int ingresso, short int prioridadeEstatica, std::string cor);
     ~Tarefa();
 	void resetaTarefa();
 
 	short int getId() const { return id; }
-	int getTempoDeComputacao() const { return tempoDeComputacao; }
+	int getTempoDeComputacao() const { return duracao; }
 	int getPeriodo() const { return periodo; }
-	int getDeadlineRelativo() const { return deadlineRelativo; }
-    int getInicio() const { return inicio; }
+	int getPrazo() const { return prazo; }
+    int getIngresso() const { return ingresso; }
 	short int getPrioridadeEstatica() const { return prioridadeEstatica; }
 	int getTempoRestante() const { return tempoRestante; }
 	int getProximoDeadline() const { return proximoDeadline; }
