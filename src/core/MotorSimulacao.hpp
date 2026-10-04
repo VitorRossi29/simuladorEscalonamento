@@ -26,8 +26,14 @@ private:
 public:
 	void addTarefa(const Tarefa& tarefa);
 	void resetSimulacao();
-	Historico passoSimulacao();
+
+	Historico passoSimulacaoRM();
+	Historico passoSimulacaoEDF();
+	void preparaSimulacaoRM();
+
 	double calculaUtilizacaoCPU();
 	bool verificaEscalabilidade();
 	bool escalabilidadeRM();
+
+	bool comparaPeriodo(const Tarefa& t1, const Tarefa& t2);
 };

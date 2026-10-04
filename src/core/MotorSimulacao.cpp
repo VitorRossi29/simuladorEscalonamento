@@ -1,4 +1,5 @@
 #include "MotorSimulacao.hpp"
+#include <algorithm>
 
 //coloca a tarefa no vetor de tarefas
 void MotorSimulacao::addTarefa(const Tarefa& tarefa)
@@ -19,8 +20,80 @@ void MotorSimulacao::resetSimulacao()
 }
 
 //executa um passo da simulacao e retorna o historico do tick atual
-//FAZER DEPOIS
-Historico MotorSimulacao::passoSimulacao()
+Historico MotorSimulacao::passoSimulacaoRM()
+{
+	Historico historicoAtual;
+	Tarefa* tarefaMaiorPrioridade=nullptr;
+
+	//encontra a tarefa com maior prioridade que esteja pronta para executar
+	for(Tarefa& tarefa:tarefas)
+	{
+		if(tarefaMaiorPrioridade==nullptr || tarefa.getPrioridade()>tarefaMaiorPrioridade->getPrioridade())
+		{
+			if(tarefa.getIngresso()<=tickAtual && tarefa.getTempoRestante()>0)
+				tarefaMaiorPrioridade=&tarefa;
+		}
+	}
+
+	if(tarefaMaiorPrioridade==nullptr)
+	{
+		//nenhuma tarefa pronta para executar
+		//VER OQ TEM QUE FAZER AQ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		return historicoAtual;
+	}
+	
+	//armazena a tarefa depois de decrementar o tempo restante
+	(*tarefaMaiorPrioridade)--;
+	historicoAtual.tarefaExecutada=*tarefaMaiorPrioridade; //tarefa que sera executada nesse tick
+	
+	
+	//para o primeiro tick nunca eh preemptada
+	if(tickAtual==0)
+	{
+		historicoAtual.preemptada=false;
+	}
+	//compara se eh igual a tarefa anterior e se a mesma ja terminou
+	else
+	{
+		if(historicoTimeline.back().tarefaExecutada.getId()!=tarefaMaiorPrioridade->getId() && //tarefa diferente da anterior
+			historicoTimeline.back().tarefaExecutada.getTempoRestante()>0) //tarefa anterior ainda nao terminou
+			historicoAtual.preemptada=true;
+		else
+			historicoAtual.preemptada=false;
+	}
+	
+	//verifica deadlines perdidas
+	//TALVEZ SEJA <= TICK ATUAL
+	for (Tarefa& tarefa:tarefas)
+	{
+		if (tarefa.getProximoDeadline()==tickAtual && tarefa.getTempoRestante()>0)
+		{
+			historicoAtual.idDeadlinesPerdidas.push_back(tarefa.getId());
+		}
+	}
+
+	historicoAtual.tempo=tickAtual++;
+	historicoTimeline.push_back(historicoAtual);
+
+	return historicoAtual;
+}
+
+void MotorSimulacao::preparaSimulacaoRM()
+{
+	//ordena as tarefas do menor pro maior periodo
+	std::sort(tarefas.begin(), tarefas.end(), comparaPeriodo);
+
+	//atribui a maior prioridade para as tarefas com menor periodo
+	short int i=tarefas.size();
+	for(Tarefa& tarefa:tarefas)
+	{
+		tarefa.setPrioridade(i--);
+	}
+}
+
+//executa um passo da simulacao e retorna o historico do tick atual
+//FAZER DPS
+Historico MotorSimulacao::passoSimulacaoEDF()
 {
 	return Historico();
 }
@@ -68,4 +141,9 @@ bool MotorSimulacao::escalabilidadeRM()
 	double limite=n*(std::pow(2.0, 1.0/n)-1.0);
 
 	return utilizacao<=limite;
+}
+
+bool MotorSimulacao::comparaPeriodo(const Tarefa& a, const Tarefa& b)
+{
+	return a.getPeriodo()<b.getPeriodo();
 }
