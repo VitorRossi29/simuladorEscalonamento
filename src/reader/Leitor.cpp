@@ -5,12 +5,13 @@
 #include <algorithm>
 #include <cctype>
 
-//Cria uma copia da string e transforma cada caractere em maiusculo.
+//cria uma copia da string e transforma cada caractere em maiusculo
 std::string Leitor::paraMaiusculo(const std::string& texto)
 {
     std::string resultado=texto;
-    std::transform(resultado.begin(), resultado.end(), resultado.begin(), [](unsigned char c) {return std::toupper(c);}); 
 
+	//funcao lambda para converter os caracteres
+    std::transform(resultado.begin(), resultado.end(), resultado.begin(), [](unsigned char c) {return std::toupper(c);}); 
     return resultado;
 }
 
@@ -27,7 +28,7 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
 
     std::string linha;
 
-    //Primeira linha: configuracoes gerais
+    //primeira linha: configuracoes gerais
     if (std::getline(arquivo, linha))
     {
         std::stringstream ss(linha);
@@ -60,6 +61,7 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
         configuracao.quantidadeCPUs=std::stoi(campo);
     }
 
+	//resto sao as tarefas
     while (std::getline(arquivo, linha))
     {
         std::stringstream ss(linha);
@@ -67,27 +69,27 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
 
         //id
         std::getline(ss, campo, ';');
-        short int id = std::stoi(campo);
+        short int id=std::stoi(campo);
 
         //cor
         std::getline(ss, campo, ';');
-        std::string cor = campo;
+        std::string cor=campo;
 
         //ingresso
         std::getline(ss, campo, ';');
-        int ingresso = std::stoi(campo);
+        int ingresso=std::stoi(campo);
 
         //duracao
         std::getline(ss, campo, ';');
-        int duracao = std::stoi(campo);
+        int duracao=std::stoi(campo);
 
         //periodo
         std::getline(ss, campo, ';');
-        int periodo = std::stoi(campo);
+        int periodo=std::stoi(campo);
 
         //prazo
         std::getline(ss, campo, ';');
-        int prazo = std::stoi(campo);
+        int prazo=std::stoi(campo);
 
         Tarefa tarefa(id, duracao, periodo, prazo, ingresso, 0, cor);
 

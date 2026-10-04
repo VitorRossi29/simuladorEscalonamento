@@ -19,6 +19,7 @@ void MotorSimulacao::resetSimulacao()
 }
 
 //executa um passo da simulacao e retorna o historico do tick atual
+//FAZER DEPOIS
 Historico MotorSimulacao::passoSimulacao()
 {
 	return Historico();

@@ -15,5 +15,5 @@ class Leitor
 {
 public:
     Configuracao lerArquivo(const std::string& caminho);
-	std::string paraMaiusculo(std::string texto);
+	std::string paraMaiusculo(const std::string& texto);
 };
