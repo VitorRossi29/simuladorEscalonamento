@@ -2,6 +2,7 @@
 #include <vector>
 #include "Tarefa.hpp"
 #include "Metricas.hpp"
+#include <cmath>
 
 struct MotorSimulacao
 {
@@ -28,4 +29,5 @@ public:
 	Historico passoSimulacao();
 	double calculaUtilizacaoCPU();
 	bool verificaEscalabilidade();
+	bool escalabilidadeRM();
 };

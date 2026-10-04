@@ -38,11 +38,11 @@ FetchContent_MakeAvailable(rlImGui)
 
 # Biblioteca estática do ImGui
 file(GLOB IMGUI_SOURCES ${imgui_SOURCE_DIR}/*.cpp)
-add_library(imgui_static STATIC ${IMGUI_SOURCES} "src/core/Tarefa.cpp" "src/core/MotorSimulacao.cpp")
+add_library(imgui_static STATIC ${IMGUI_SOURCES} "src/core/Tarefa.cpp" "src/core/MotorSimulacao.cpp" "src/reader/Leitor.cpp")
 target_include_directories(imgui_static PUBLIC ${imgui_SOURCE_DIR})
 
 # Biblioteca estática do rlImGui
-add_library(rlimgui_static STATIC ${rlimgui_SOURCE_DIR}/rlImGui.cpp "src/core/Tarefa.cpp" "src/core/MotorSimulacao.cpp")
+add_library(rlimgui_static STATIC ${rlimgui_SOURCE_DIR}/rlImGui.cpp "src/core/Tarefa.cpp" "src/core/MotorSimulacao.cpp" "src/reader/Leitor.cpp")
 target_include_directories(rlimgui_static PUBLIC ${rlimgui_SOURCE_DIR} ${imgui_SOURCE_DIR})
 target_link_libraries(rlimgui_static PUBLIC raylib imgui_static)
 
@@ -52,7 +52,7 @@ target_compile_definitions(rlimgui_static PRIVATE IsTextureValid=IsTextureReady)
 # Executável Principal
 add_executable(SimuladorEscalonamento
     src/main.cpp
- "src/core/Tarefa.cpp" "src/core/MotorSimulacao.cpp")
+ "src/core/Tarefa.cpp" "src/core/MotorSimulacao.cpp" "src/reader/Leitor.cpp")
 
 target_include_directories(SimuladorEscalonamento PRIVATE
     src
