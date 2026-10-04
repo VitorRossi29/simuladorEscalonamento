@@ -1,12 +1,13 @@
 #pragma once
 #include <vector>
+#include "Tarefa.hpp"
 
 struct Historico
 {
 	int tempo;
-	short int idTarefa;
 	bool preemptada;
 	std::vector<short int> idDeadlinesPerdidas;
+	Tarefa tarefaExecutada;
 };
 
 struct Metricas
