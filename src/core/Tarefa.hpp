@@ -17,7 +17,6 @@ enum class TipoAlgoritmo
 
 struct Tarefa
 {
-
 private:
     //estáticos
     static short int proximoId;
@@ -41,7 +40,22 @@ private:
 
 public:
     Tarefa();
+	Tarefa(std::string nome, int tempoDeComputacao, int periodo, int deadlineRelativo, int inicio, short int prioridadeEstatica, std::string cor);
     ~Tarefa();
+	void resetaTarefa();
+
+	short int getId() const { return id; }
+	int getTempoDeComputacao() const { return tempoDeComputacao; }
+	int getPeriodo() const { return periodo; }
+	int getDeadlineRelativo() const { return deadlineRelativo; }
+    int getInicio() const { return inicio; }
+	short int getPrioridadeEstatica() const { return prioridadeEstatica; }
+	int getTempoRestante() const { return tempoRestante; }
+	int getProximoDeadline() const { return proximoDeadline; }
+	int getProximaLiberacao() const { return proximaLiberacao; }
+	int getDeadlinesPerdidas() const { return deadlinesPerdidas; }
+	int getTempoEspera() const { return tempoEspera; }
+	EstadoTarefa getEstado() const { return estado; }
 };
 
 
