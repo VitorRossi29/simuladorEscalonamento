@@ -28,9 +28,14 @@ Historico MotorSimulacao::passoSimulacaoRM()
 	//encontra a tarefa com maior prioridade que esteja pronta para executar
 	for(Tarefa& tarefa:tarefas)
 	{
+		//muda o estado da tarefa se estiver pronta para executar
+		if (tarefa.getProximaLiberacao()<=tickAtual && tarefa.getTempoRestante()>0)
+		{
+			tarefa.setEstado(EstadoTarefa::PRONTA);
+		}
 		if(tarefaMaiorPrioridade==nullptr || tarefa.getPrioridade()>tarefaMaiorPrioridade->getPrioridade())
 		{
-			if(tarefa.getIngresso()<=tickAtual && tarefa.getTempoRestante()>0)
+			if(tarefa.getEstado()==EstadoTarefa::PRONTA)
 				tarefaMaiorPrioridade=&tarefa;
 		}
 	}
@@ -38,43 +43,64 @@ Historico MotorSimulacao::passoSimulacaoRM()
 	if(tarefaMaiorPrioridade==nullptr)
 	{
 		//nenhuma tarefa pronta para executar
-		//VER OQ TEM QUE FAZER AQ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		return historicoAtual;
-	}
-	
-	//armazena a tarefa depois de decrementar o tempo restante
-	(*tarefaMaiorPrioridade)--;
-	historicoAtual.tarefaExecutada=*tarefaMaiorPrioridade; //tarefa que sera executada nesse tick
-	
-	
-	//para o primeiro tick nunca eh preemptada
-	if(tickAtual==0)
-	{
+		historicoAtual.tempo=tickAtual;
 		historicoAtual.preemptada=false;
+		historicoAtual.tarefaExecutada=Tarefa();
 	}
-	//compara se eh igual a tarefa anterior e se a mesma ja terminou
 	else
 	{
-		if(historicoTimeline.back().tarefaExecutada.getId()!=tarefaMaiorPrioridade->getId() && //tarefa diferente da anterior
-			historicoTimeline.back().tarefaExecutada.getTempoRestante()>0) //tarefa anterior ainda nao terminou
-			historicoAtual.preemptada=true;
-		else
+		//armazena a tarefa depois de decrementar o tempo restante
+		tarefaMaiorPrioridade->setEstado(EstadoTarefa::EXECUTANDO);
+		(*tarefaMaiorPrioridade)--;
+		historicoAtual.tarefaExecutada=*tarefaMaiorPrioridade; //tarefa que sera executada nesse tick
+
+		//para o primeiro tick nunca eh preemptada
+		if(tickAtual==0)
+		{
 			historicoAtual.preemptada=false;
+		}
+		//compara se eh igual a tarefa anterior e se a mesma ja terminou
+		else
+		{
+			if(historicoTimeline.back().tarefaExecutada.getId()!=tarefaMaiorPrioridade->getId() && //tarefa diferente da anterior
+				historicoTimeline.back().tarefaExecutada.getTempoRestante()>0) //tarefa anterior ainda nao terminou
+				historicoAtual.preemptada=true;
+			else
+				historicoAtual.preemptada=false;
+		}
+
+
+		for(Tarefa& tarefa:tarefas)
+		{
+			//verifica deadlines perdidas
+			if (tarefa.getProximoDeadline()==tickAtual && tarefa.getTempoRestante()>0)
+			{
+				tarefa.setEstado(EstadoTarefa::DEADLINE_PERDIDA);
+				historicoAtual.idDeadlinesPerdidas.push_back(tarefa.getId());
+				++tarefa; //incrementa o numero de deadlines perdidas
+			}
+			//verifica tarefas terminadas
+			else if(tarefa.getTempoRestante()==0)
+			{
+				if(tarefa.getQuantidadeExecucoes()<10)
+				{
+					tarefa++;
+					tarefa.resetaTarefa();
+				}
+				else
+					tarefa.setEstado(EstadoTarefa::TERMINADA);
+			}
+			//incrementa o tempo de espera da tarefa
+			else if(tarefa.getEstado() == EstadoTarefa::PRONTA && &tarefa != tarefaMaiorPrioridade)
+			{
+				tarefa+=1;
+			}
+		}
+		historicoAtual.tempo=tickAtual;
 	}
 	
-	//verifica deadlines perdidas
-	//TALVEZ SEJA <= TICK ATUAL
-	for (Tarefa& tarefa:tarefas)
-	{
-		if (tarefa.getProximoDeadline()==tickAtual && tarefa.getTempoRestante()>0)
-		{
-			historicoAtual.idDeadlinesPerdidas.push_back(tarefa.getId());
-		}
-	}
-
-	historicoAtual.tempo=tickAtual++;
 	historicoTimeline.push_back(historicoAtual);
-
+	tickAtual++;
 	return historicoAtual;
 }
 
@@ -105,7 +131,7 @@ double MotorSimulacao::calculaUtilizacaoCPU()
 
 	for (const Tarefa& tarefa:tarefas)
 	{
-		utilizacao+=static_cast<double>(tarefa.getTempoDeComputacao())/tarefa.getPeriodo();
+		utilizacao+=static_cast<double>(tarefa.getDuracao())/tarefa.getPeriodo();
 	}
 
 	return utilizacao;

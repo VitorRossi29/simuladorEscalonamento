@@ -9,8 +9,13 @@ Tarefa::Tarefa()
 	ingresso=-1;
 	prioridade=-1;
 	cor="null";
-	quantidadeExecucoes=0;
-	resetaTarefa();
+	quantidadeExecucoes=-1;
+	proximoDeadline=-1;
+	proximaLiberacao=-1;
+	deadlinesPerdidas=-1;
+	tempoEspera=-1;
+	tempoRestante=-1;
+	estado=EstadoTarefa::NOVA;
 }
 
 Tarefa::Tarefa(short int id, int duracao, int periodo, int prazo, int ingresso, short int prioridade, std::string cor)
@@ -22,8 +27,13 @@ Tarefa::Tarefa(short int id, int duracao, int periodo, int prazo, int ingresso, 
 	this->ingresso=ingresso;
 	this->prioridade=prioridade;
 	this->cor=cor;
+	proximaLiberacao=ingresso;
+	proximoDeadline=ingresso+prazo;
 	quantidadeExecucoes=0;
-	resetaTarefa();
+	deadlinesPerdidas=0;
+	tempoEspera=0;
+	tempoRestante=duracao;
+	estado=EstadoTarefa::NOVA;
 }
 
 Tarefa::~Tarefa()
@@ -34,15 +44,10 @@ Tarefa::~Tarefa()
 void Tarefa::resetaTarefa()
 {
 	tempoRestante=duracao;
-	proximoDeadline=ingresso+prazo;
-	proximaLiberacao=ingresso+periodo;
+	proximoDeadline+=periodo;
+	proximaLiberacao+=periodo;
 	deadlinesPerdidas=0;
 	tempoEspera=0;
-	estado=EstadoTarefa::PRONTA;
+	estado=EstadoTarefa::NOVA;
 }
 
-//Sobrecarga de operador para decrementar fácil o tempo
-void Tarefa::operator--(int)
-{
-	tempoRestante--;
-}
