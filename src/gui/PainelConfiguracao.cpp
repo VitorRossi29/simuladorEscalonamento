@@ -1,6 +1,7 @@
 #include "PainelConfiguracao.hpp"
 #include "imgui.h"
 #include "PainelTabelaTarefas.hpp"
+#include "MockData.hpp"
 
 
 PainelConfiguracao::PainelConfiguracao(int* quantidadeCPUs, int* quantum, std::string algoritmo) :

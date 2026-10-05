@@ -66,7 +66,7 @@ void PainelTabelaTarefas::desenharTabela()
 
             // Coluna 1: Cor Hex (Texto simples)
             ImGui::TableNextColumn();
-            ImGui::Text("#%s", tarefa.cor.c_str());
+            ImGui::Text("#%s", tarefa.cor);
 
             // Coluna 2: Ingresso (Input numérico editável)
             ImGui::TableNextColumn();

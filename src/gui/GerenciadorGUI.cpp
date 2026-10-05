@@ -1,4 +1,5 @@
 #include "GerenciadorGUI.hpp"
+#include "MockData.hpp"
 
 GerenciadorGUI::GerenciadorGUI() :
 	m_tickAtual(0),
@@ -17,4 +18,17 @@ GerenciadorGUI::GerenciadorGUI() :
 
 void GerenciadorGUI::inicializar()
 {
+
+}
+
+void GerenciadorGUI::atualizar(float deltaTime)
+{
+
+}
+
+void GerenciadorGUI::renderizar()
+{
+	m_painelConfig.renderizar();
+	m_painelControles.renderizar();
+	m_painelTabela.renderizar();
 }

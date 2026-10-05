@@ -8,7 +8,7 @@
 #include "core/Metricas.hpp"
 #include "core/MotorSimulacao.hpp"
 
-#include "gui/PainelConfiguracao.hpp"
+#include "gui/GerenciadorGUI.hpp"
 
 int main() {
     // Configurações da Janela Nativa (Raylib)
@@ -19,13 +19,7 @@ int main() {
     // Inicializa a integração do ImGui
     rlImGuiSetup(true);
 
-    PainelConfiguracao painelConfig;
-
-    bool exibirPainelConfig = false;
-    bool exibirPainelMetricas = false;
-
-    int deadlinesPerdidos = 0;
-    float tempoOciosoPercentual = 0.67f;
+    GerenciadorGUI GUI;
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -38,26 +32,9 @@ int main() {
         ImGui::ShowDemoWindow();
 
         // Janela do Simulador (Protótipo para integração com Desenvolvedor A)
-        ImGui::Begin("Controle da Simulacao");
-        ImGui::Text("Estado da CPU: Parada");
-        ImGui::Separator();
-       
-        // O botão apenas inverte a variável
-        if (ImGui::Button("Painel de Configuracao")) {
-            exibirPainelConfig = !exibirPainelConfig;
-        }
-
-        if (exibirPainelConfig) {
-            painelConfig.renderizar();
-        }
-
-        if (ImGui::Button("Metricas")) {
-            exibirPainelMetricas = !exibirPainelMetricas;
-        }
-
-        if (exibirPainelConfig) {
-            painelConfig.renderizarMetricas(, , tempoOciosoPercentual);
-        }
+        
+        GUI.atualizar(GetFrameTime());
+        GUI.renderizar();
 
         ImGui::End();
 

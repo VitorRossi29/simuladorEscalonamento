@@ -18,5 +18,5 @@ public:
         float* delayPasso, int* modoExecucao, int* algoritmoSelecionado);
     //Desenha a janela Imgui::Begin(Controles) contendo os botoes
     //play pause passo a passo reset, seletor de modo e o slider de velocidade
-    void RenderizarPainelControles();
+    void renderizar();
 };

@@ -14,7 +14,7 @@ PainelControles::PainelControles(int* tickAtual, int* totalTicks,
 {
 }
 
-void PainelControles::RenderizarPainelControles()
+void PainelControles::renderizar()
 {
 	bool estaAberta = true;
 	if (!ImGui::Begin("Controles da Simulacao", &estaAberta))
