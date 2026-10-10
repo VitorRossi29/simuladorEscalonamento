@@ -20,24 +20,33 @@ int main() {
     rlImGuiSetup(true);
 
     GerenciadorGUI GUI;
+    GUI.inicializar();
 
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(DARKGRAY);
 
+        // Passo 1
+        GUI.atualizar(GetFrameTime());
+
         // Inicia a renderização dos elementos de interface ImGui
+        // Passo 2
         rlImGuiBegin();
 
         // Janela de Teste Nativa do ImGui (Valida a biblioteca)
-        ImGui::ShowDemoWindow();
+        // ImGui::ShowDemoWindow();
 
-        // Janela do Simulador (Protótipo para integração com Desenvolvedor A)
+        // Janela do Simulador (Prototipo para integrar com Back End)
         
-        GUI.atualizar(GetFrameTime());
+        ImGui::SetNextWindowSize(ImVec2(800, 400), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Simulador de Escalonamento");
+
+        // Passo 3
         GUI.renderizar();
 
         ImGui::End();
 
+        // Passo 4
         // Finaliza o quadro do ImGui
         rlImGuiEnd();
 

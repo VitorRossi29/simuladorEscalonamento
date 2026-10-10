@@ -1,3 +1,4 @@
+#pragma once
 #include "PainelConfiguracao.hpp"
 #include "PainelControles.hpp"
 #include "PainelTabelaTarefas.hpp"
@@ -19,11 +20,18 @@ private:
 	int m_quantidadeCPUs;
 	int m_quantum;
 
+	int m_modoExecucao;     //modo 0 = passo a passo 1 = continuo
+	int m_algoritmoSelecionado;
+
+	int m_quantidadeCPUsAnterior, m_quantumAnterior, m_algoritmoAnterior;
+
 	std::string m_algoritmo;
 
 	PainelConfiguracao m_painelConfig;
 	PainelControles m_painelControles;
 	PainelTabelaTarefas m_painelTabela;
+
+	void recalcularHistorico();
 
 public:
 	GerenciadorGUI();

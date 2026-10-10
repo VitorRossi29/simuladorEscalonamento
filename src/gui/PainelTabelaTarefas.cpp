@@ -1,38 +1,72 @@
 #include "PainelTabelaTarefas.hpp"
 #include "imgui.h"
+#include <cstring>
 
-
-PainelTabelaTarefas::PainelTabelaTarefas(std::vector<TarefaMock>* tarefas, const SnapshotTick* snapshotAtual) :
-    m_tarefasRef(tarefas),
-    m_snapshotAtualRef(snapshotAtual),
-    m_novoIngresso(-1),
-    m_novaDuracao(-1),
-    m_novoPeriodo(-1),
-    m_novoPrazo(-1),
-    m_novaCorBuffer()
+// Função utilitária para converter a enum class em texto formatado para o ImGui
+const char* estadoParaString(EstadoTarefa estado)
 {
+    switch (estado)
+    {
+    case EstadoTarefa::EXECUTANDO: return "EXECUTANDO";
+    case EstadoTarefa::PRONTA:     return "PRONTA";
+    case EstadoTarefa::ESPERANDO:   return "ESPERANDO";
+    case EstadoTarefa::DEADLINE_PERDIDA:  return "DEADLINE PERDIDA";
+    default:                       return "DESCONHECIDO";
+    }
+}
+
+
+PainelTabelaTarefas::PainelTabelaTarefas(std::vector<TarefaMock>* tarefas,
+    const std::vector<SnapshotTick>* historico,
+    const int* tickAtual) :
+    m_tarefasRef(tarefas),
+    m_historicoRef(historico),
+    m_tickAtualRef(tickAtual),
+    m_novoIngresso(0),
+    m_novaDuracao(1),
+    m_novoPeriodo(1),
+    m_novoPrazo(1)
+{
+    m_novaCorBuffer[0] = '\0';
 }
 
 void PainelTabelaTarefas::renderizar()
 {
+    ImGui::SetNextWindowSize(ImVec2(800, 400), ImGuiCond_FirstUseEver);
+
 	bool estaAberta = true;
 	if (!ImGui::Begin("Painel de Tarefas", &estaAberta))
 	{
 		ImGui::End();
 		return;
 	}
+	
+    // Busca o snapshot do tick atual de forma segura
+    const SnapshotTick* snapshotAtual = nullptr;
+    if (m_historicoRef != nullptr && m_tickAtualRef != nullptr &&
+        !m_historicoRef->empty())
+    {
+        int tick = *m_tickAtualRef;
 
-	//Se estiverem nulos nao vai funcionar
-	if (m_tarefasRef != NULL && m_snapshotAtualRef != NULL)
+        // Testa se o tick obtido pela referencia esta dentro dos limites
+        if (tick >= 0 && tick < static_cast<int>(m_historicoRef->size()))
+        {
+            // Adquire o snapshot no historico no momento certo
+            snapshotAtual = &( (*m_historicoRef) [tick] );
+        }
+    }
+
+    //Se estiver nulo nao vai funcionar
+	if (m_tarefasRef != NULL)
 	{
-		desenharTabela();
+		desenharTabela(snapshotAtual);
 		desenharFormularioInsercao();
 	}
 
 	ImGui::End();
 }
 
-void PainelTabelaTarefas::desenharTabela()
+void PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
 {
     int idParaRemover = -1;
 
@@ -43,11 +77,11 @@ void PainelTabelaTarefas::desenharTabela()
         ImGui::TableSetupColumn("ID");
         ImGui::TableSetupColumn("Cor");
         ImGui::TableSetupColumn("Ingresso");
-        ImGui::TableSetupColumn("Duração (C)");
-        ImGui::TableSetupColumn("Período (T)");
+        ImGui::TableSetupColumn("Duracao (C)");
+        ImGui::TableSetupColumn("Periodo (T)");
         ImGui::TableSetupColumn("Prazo (D)");
         ImGui::TableSetupColumn("Estado");
-        ImGui::TableSetupColumn("Ações");
+        ImGui::TableSetupColumn("Acoes");
 
         // 3. Renderiza a linha com os títulos das colunas
         ImGui::TableHeadersRow();
@@ -55,7 +89,7 @@ void PainelTabelaTarefas::desenharTabela()
         // 4. Percorre o vetor de dados preenchendo as linhas da tabela
         for (size_t i = 0; i < m_tarefasRef->size(); i++)
         {
-            TarefaMock tarefa = (*m_tarefasRef)[i];
+            TarefaMock& tarefa = (*m_tarefasRef)[i];
 
             // Evita conflito de IDs entre elementos das linhas
             ImGui::PushID(tarefa.id);
@@ -89,9 +123,23 @@ void PainelTabelaTarefas::desenharTabela()
             ImGui::InputInt("##prazo", &tarefa.prazo, 0);
 
             // Coluna 6: Estado Atual no Tick
-            //TALVEZ INCORRETO
+            //Busca o estado da tarefa no snapshot do tick atual
             ImGui::TableNextColumn();
-            ImGui::Text("%s", tarefa.estado);
+
+            std::string estadoStr = "ESPERANDO";
+            if (snapshotAtual != nullptr)
+            {
+                for (size_t j = 0; j < snapshotAtual->tarefas.size(); j++)
+                {
+                    if (snapshotAtual->tarefas[j].idTarefa == tarefa.id)
+                    {
+                        estadoStr = estadoParaString(snapshotAtual->tarefas[j].estado);
+                        break;
+                    }
+                }
+            }
+            
+            ImGui::Text("%s", estadoStr.c_str() );
 
             // Coluna 7: Botão de Ação
             ImGui::TableNextColumn();
@@ -121,8 +169,6 @@ void PainelTabelaTarefas::desenharTabela()
         }
     }
 
-
-	ImGui::End();
 }
 
 void PainelTabelaTarefas::desenharFormularioInsercao()
@@ -131,27 +177,52 @@ void PainelTabelaTarefas::desenharFormularioInsercao()
 
     ImGui::Text("Nova Tarefa");
 
+    ImGui::SetNextItemWidth(70.0f);
     ImGui::InputText("Cor Hex", m_novaCorBuffer, sizeof(m_novaCorBuffer));
     ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(80.0f);
     ImGui::InputInt("Ingresso", &m_novoIngresso);
     ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(80.0f);
     ImGui::InputInt("Duracao", &m_novaDuracao);
     ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(80.0f);
     ImGui::InputInt("Periodo", &m_novoPeriodo);
     ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(80.0f);
     ImGui::InputInt("Prazo", &m_novoPrazo);
 
     if (ImGui::Button("+ Adicionar Tarefa"))
     {
-        
-        TarefaMock tarefaNova = { proximoId(), *m_novaCorBuffer, m_novoIngresso, 
-            m_novaDuracao, m_novoPeriodo, m_novoPrazo};
+        TarefaMock tarefaNova;
+        tarefaNova.id = proximoId();
+
+        // Copia a string do buffer para o campo char[8] da struct garantindo a terminação nula
+        strncpy(tarefaNova.cor, m_novaCorBuffer, sizeof(tarefaNova.cor) - 1);
+        tarefaNova.cor[sizeof(tarefaNova.cor) - 1] = '\0';
+
+        tarefaNova.ingresso = m_novoIngresso;
+        tarefaNova.duracao = m_novaDuracao;
+        tarefaNova.periodo = m_novoPeriodo;
+        tarefaNova.prazo = m_novoPrazo;
+        tarefaNova.lista_eventos = ""; //String que sera usada no projeto B
+        tarefaNova.estado = EstadoTarefa::ESPERANDO; // Estado inicial padrao
+
         m_tarefasRef->push_back(tarefaNova);
     }
 }
 
 int PainelTabelaTarefas::proximoId()
 {
+    if (m_tarefasRef == nullptr || m_tarefasRef->empty())
+    {
+        return 1;
+    }
+    
     return (m_tarefasRef->back().id) + 1;
 }
 

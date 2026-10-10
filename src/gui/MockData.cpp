@@ -2,10 +2,6 @@
 #include <time.h>
 #include <stdlib.h>
 
-
-
-
-
 //Historico de mentira de tarefas para testar
 
 std::vector<TarefaMock> GeradorMock::criarTarefasIniciais()
@@ -21,16 +17,17 @@ std::vector<TarefaMock> GeradorMock::criarTarefasIniciais()
     return tarefasCadastradas;
 }
 
-std::vector<SnapshotTick> GeradorMock::gerarHistoricoInicial(const std::vector<TarefaMock>& tarefasCadastradas, int maxTicks, int maxCPUs)
+std::vector<SnapshotTick> GeradorMock::gerarHistoricoInicial(std::vector<TarefaMock>& tarefasCadastradas, int maxTicks, int maxCPUs, int quantum)
 {
     srand(time(0));
+
+    int q = (quantum > 0) ? quantum : 1;
 
     const int numTarefas = static_cast<int>(tarefasCadastradas.size());
 
     //historico de cada tick
 
     std::vector<SnapshotTick> historico(maxTicks);
-
 
     //ocorrencia de  todos os ticks
     for (int t = 0; t < maxTicks; t++)
@@ -41,8 +38,9 @@ std::vector<SnapshotTick> GeradorMock::gerarHistoricoInicial(const std::vector<T
         //escolhas para a cpu
         for (int c = 0; c < maxCPUs; c++)
         {
-            //define a tarefa a ser feita
-            int sorteio = (rand() % 4) - 1;
+            // A divisão inteira (t / q) faz com que o resultado só mude a cada 'q' ticks,
+            // simulando a permanência da tarefa na CPU durante o quantum.
+            int sorteio = ((t / q) + c) % numTarefas;
 
             //id da tarefa sendo executada
             int idTarefaExec;

@@ -16,6 +16,8 @@ PainelControles::PainelControles(int* tickAtual, int* totalTicks,
 
 void PainelControles::renderizar()
 {
+	ImGui::SetNextWindowSize(ImVec2(800, 400), ImGuiCond_FirstUseEver);
+
 	bool estaAberta = true;
 	if (!ImGui::Begin("Controles da Simulacao", &estaAberta))
 	{
@@ -23,63 +25,70 @@ void PainelControles::renderizar()
 		return;
 	}
 
-	ImGui::TextColored(ImColor(0, 127, 255, 255), "Tick Atual: %d/ %d", m_tickAtual, m_totalTicks);
+	if (m_tickAtualRef == nullptr || m_totalTicksRef == nullptr || m_emExecucaoAutoRef == nullptr)
+	{
+		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Erro: Ponteiros de controle nao vinculados!");
+		ImGui::End();
+		return;
+	}
 
-	if(m_emExecucaoAuto)
+	ImGui::TextColored(ImColor(0, 127, 255, 255), "Tick Atual: %d/ %d", *m_tickAtualRef, *m_totalTicksRef);
+
+	if (m_emExecucaoAutoRef != nullptr && *m_emExecucaoAutoRef)
 		ImGui::TextColored(ImColor(0, 255, 0, 255), "Escalonador em Execucao");
 	else
 		ImGui::TextColored(ImColor(255, 0, 0, 255), "Escalonador Pausado");
 
 	ImGui::Separator();
 
-	ImGui::RadioButton("Rate Monotonic", &m_algoritmoSelecionado, 0);
-	ImGui::SameLine(); // Mantém os botões na mesma linha (opcional)
-	ImGui::RadioButton("Earliest Deadline First", &m_algoritmoSelecionado, 1);
+	ImGui::RadioButton("Rate Monotonic", m_algoritmoSelecionado, 0);
 	ImGui::SameLine();
-	ImGui::RadioButton("Outro", &m_algoritmoSelecionado, 2);
+	ImGui::RadioButton("Earliest Deadline First", m_algoritmoSelecionado, 1);
+	ImGui::SameLine();
+	ImGui::RadioButton("Outro", m_algoritmoSelecionado, 2);
 
 	ImGui::Separator();
 
 	if (ImGui::Button("Executar"))
 	{
-		m_emExecucaoAuto = true;
+		*m_emExecucaoAutoRef = true;
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("Pausar"))
 	{
-		m_emExecucaoAuto = false;
+		*m_emExecucaoAutoRef = false;
 	}
 	ImGui::SameLine();
 
-	ImGui::BeginDisabled(m_emExecucaoAuto);
+	ImGui::BeginDisabled(m_emExecucaoAutoRef != nullptr && *m_emExecucaoAutoRef);
 
 	if (ImGui::Button ("Avancar (+1)"))
 	{
-		if(m_tickAtual < m_totalTicks - 1)
-			m_tickAtual += 1;
+		if(*m_tickAtualRef < *m_totalTicksRef - 1)
+			*m_tickAtualRef += 1;
 	}
-	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && *m_emExecucaoAutoRef)
 		ImGui::SetTooltip("Pause a execucao para usar o botao");
 
 	ImGui::SameLine();
 	if (ImGui::Button("Retroceder (-1)"))
 	{
-		if (m_tickAtual > 0)
-			m_tickAtual -= 1;
+		if (*m_tickAtualRef > 0)
+			*m_tickAtualRef -= 1;
 	}
-	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && *m_emExecucaoAutoRef)
 		ImGui::SetTooltip("Pause a execucao para usar o botao");
 
 	ImGui::EndDisabled();
 
 	ImGui::SameLine();
-	if (ImGui::Button("Avancar (+1)"))
-	{
-		m_tickAtual = 0;
-		m_emExecucaoAuto = false;
+	if (ImGui::Button("Reset"))
+	{	
+		*m_tickAtualRef = 0;
+		*m_emExecucaoAutoRef = false;
 	}
 
-	ImGui::SliderFloat3("Velocidade de simulacao", &m_delayPasso, 0.5f, 3.f, "%.2f segundos/tick");
+	ImGui::SliderFloat("Velocidade de simulacao", m_delayPasso, 0.1f, 3.0f, "%.2f segundos/tick");
 
 	ImGui::End();
 }

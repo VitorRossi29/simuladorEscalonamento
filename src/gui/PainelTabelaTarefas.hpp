@@ -1,3 +1,4 @@
+#pragma once
 #include <vector>
 #include "MockData.hpp"
 
@@ -9,7 +10,9 @@ class PainelTabelaTarefas
 private:
 	std::vector<TarefaMock>* m_tarefasRef;
 	//Ponteiro para vetor real de tarefas
-	const SnapshotTick* m_snapshotAtualRef;
+	
+	const std::vector<SnapshotTick>* m_historicoRef;
+	const int* m_tickAtualRef;
 	//Ponteiro para o snapshot de tempo atual no player
 	
 	//Informacoes para inserir novas tarefas (formulario)
@@ -22,14 +25,16 @@ private:
 public:
 
 	//Associa os ponteiros do painel as estruturas ativas do GerenciadorGUI
-	PainelTabelaTarefas(std::vector<TarefaMock>* tarefas, const SnapshotTick* snapshotAtual);
+	PainelTabelaTarefas(std::vector<TarefaMock>* tarefas = nullptr, 
+		const std::vector<SnapshotTick>* historico = nullptr,
+		const int* tickAtual = 0);
 
 	//Executa o desenho da janela sem receber parametros na chamada do laco
 	void renderizar();
 
 private:
-	//renderiza a tabela
-	void desenharTabela();
+	//renderiza a tabela, snapshot encontrado eh passado para a funcao
+	void desenharTabela(const SnapshotTick* snapshotAtual);
 
 	//renderiza os campos de entrada e o botão para adicionar tarefas
 	void desenharFormularioInsercao();

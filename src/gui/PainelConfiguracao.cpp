@@ -13,6 +13,8 @@ PainelConfiguracao::PainelConfiguracao(int* quantidadeCPUs, int* quantum, std::s
 
 void PainelConfiguracao::renderizar()
 {
+	ImGui::SetNextWindowSize(ImVec2(800, 400), ImGuiCond_FirstUseEver);
+
 	bool estaAberta = true;
 	if (!ImGui::Begin("Painel de Configuracao", &estaAberta))
 	{
@@ -26,11 +28,13 @@ void PainelConfiguracao::renderizar()
     {
 		m_algoritmo = "RM"; 
     }
-	else if (ImGui::Button("Earliest Deadline First"))
+	ImGui::SameLine();
+	if (ImGui::Button("Earliest Deadline First"))
 	{
 		m_algoritmo = "EDF";
 	}
-	else if(ImGui::Button("Outro"))
+	ImGui::SameLine();
+	if(ImGui::Button("Outro"))
 	{
 		m_algoritmo = "Outro";
 	}
@@ -41,8 +45,8 @@ void PainelConfiguracao::renderizar()
 	ImGui::SliderInt("Numero de CPUs", &valorCPUS, 1, 50, "%d CPUs");
 	ImGui::SliderInt("Valor do Quantum", &valorQUANTUM, 1, 50, "%d Ticks");
 
-	m_qtdeCpus = valorCPUS;
-	m_quantum = valorQUANTUM;
+	*m_qtdeCpus = valorCPUS;
+	*m_quantum = valorQUANTUM;
 
 	static bool carregarTexto = false;
 
@@ -68,7 +72,7 @@ void PainelConfiguracao::renderizarMetricas(const std::vector<TarefaMock>& taref
 	float progresso;
 
 	if (m_qtdeCpus != 0)
-		progresso = (float)utilizacaoCPU / (float)m_qtdeCpus;
+		progresso = (float)utilizacaoCPU / (float) *m_qtdeCpus;
 	else
 		progresso = 0.0f;
 
