@@ -27,13 +27,16 @@ public:
 	void addTarefa(const Tarefa& tarefa);
 	void resetSimulacao();
 
-	Historico passoSimulacaoRM();
-	Historico passoSimulacaoEDF();
+	Tarefa* achaProximaRM();
+	Tarefa* achaProximaEDF();
+	Historico passoSimulacao(Tarefa* tarefaMaiorPrioridade);
 	void preparaSimulacaoRM();
 
 	double calculaUtilizacaoCPU();
 	bool verificaEscalabilidade();
 	bool escalabilidadeRM();
+
+	void executaTempoReal();
 
 	//estatico para poder ser usado como funcao de comparacao para o sort
 	static bool comparaPeriodo(const Tarefa& t1, const Tarefa& t2);
