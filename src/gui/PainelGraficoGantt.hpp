@@ -6,10 +6,11 @@
 class PainelGraficoGantt
 {
 private:
-    const std::vector<TarefaMock>* m_tarefasRef;
+    const std::vector<TarefaGUI>* m_tarefasRef;
     const std::vector<SnapshotTick>* m_historicoRef;
     const int* m_tickAtualRef;
     const int* m_qtdeCpusRef;
+    const int* m_modoExecucao;
 
     // Configurações de dimensão e zoom da grade
     float m_larguraTick;  // Largura em pixels de 1 tick (ex: 30.0f)
@@ -24,15 +25,16 @@ private:
     // Métodos auxiliares de desenho
     void desenharReguaEixoX(ImDrawList* listaDesenhos, ImVec2 inicio, int totalTicks);
     void desenharAgulhaTempoAtual(ImDrawList* listaDesenhos, ImVec2 inicio, size_t totalTarefas);
-    void desenharEixoYELinhasBase(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaMock>& tarefasOrdenadas);
-    void desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaMock>& tarefasOrdenadas);
-    void desenharEventosESinais(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaMock>& tarefasOrdenadas);
+    void desenharEixoYELinhasBase(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaGUI>& tarefasOrdenadas);
+    void desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaGUI>& tarefasOrdenadas);
+    void desenharEventosESinais(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaGUI>& tarefasOrdenadas);
 
 public:
-    PainelGraficoGantt(const std::vector<TarefaMock>* tarefas,
+    PainelGraficoGantt(const std::vector<TarefaGUI>* tarefas,
         const std::vector<SnapshotTick>* historico,
         const int* tickAtual,
-        const int* qtdeCpus);
+        const int* qtdeCpus, 
+        int* modoExecucao);
 
     void renderizar();
     ImVec2 dimensoesTotais();

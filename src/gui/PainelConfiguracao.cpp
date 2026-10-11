@@ -4,10 +4,11 @@
 #include "MockData.hpp"
 
 
-PainelConfiguracao::PainelConfiguracao(int* quantidadeCPUs, int* quantum, std::string &algoritmo) :
+PainelConfiguracao::PainelConfiguracao(int* quantidadeCPUs, int* quantum, std::string &algoritmo, ModoFonteDados* modoFonte) :
 	m_qtdeCpus(quantidadeCPUs),
 	m_quantum(quantum),
-	m_algoritmo(algoritmo)
+	m_algoritmo(algoritmo), 
+	m_modoFonte(modoFonte)
 {
 }
 
@@ -21,6 +22,19 @@ void PainelConfiguracao::renderizar()
 		ImGui::End();
 		return;
 	}
+
+	static int selecaoFonte = (*m_modoFonte == ModoFonteDados::MOCK) ? 0 : 1;
+
+	if (ImGui::RadioButton("Dados Simulados (Mock)", &selecaoFonte, 0))
+	{
+		*m_modoFonte = ModoFonteDados::MOCK;
+	}
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Motor Real (Engine)", &selecaoFonte, 1))
+	{
+		*m_modoFonte = ModoFonteDados::ENGINE_REAL;
+	}
+
 
 	ImGui::Text("Algoritmo de Escalonamento:");
 
@@ -44,14 +58,6 @@ void PainelConfiguracao::renderizar()
 
 	ImGui::Separator();
 
-	/*static int valorCPUS = 1, valorQUANTUM = 2;
-
-	ImGui::SliderInt("Numero de CPUs", &valorCPUS, 1, 50, "%d CPUs");
-	ImGui::SliderInt("Valor do Quantum", &valorQUANTUM, 1, 50, "%d Ticks");
-
-	*m_qtdeCpus = valorCPUS;
-	*m_quantum = valorQUANTUM;*/
-
 	// Controles diretamente vinculados às variáveis do GerenciadorGUI
 	if (m_qtdeCpus != nullptr)
 	{
@@ -73,7 +79,7 @@ void PainelConfiguracao::renderizar()
 	ImGui::End();
 }
 
-void PainelConfiguracao::renderizarMetricas(const std::vector<TarefaMock>& tarefas, 
+void PainelConfiguracao::renderizarMetricas(const std::vector<TarefaGUI>& tarefas, 
 	int totalDeadlinesPerdidos, 
 	float tempoOciosoPercentual)
 {

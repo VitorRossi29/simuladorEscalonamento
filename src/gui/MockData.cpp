@@ -4,11 +4,11 @@
 
 //Historico de mentira de tarefas para testar
 
-std::vector<TarefaMock> GeradorMock::criarTarefasIniciais()
+std::vector<TarefaGUI> GeradorMock::criarTarefasIniciais()
 {
     //conjunto das tarefas cadastradas
 
-    std::vector<TarefaMock> tarefasCadastradas(3);
+    std::vector<TarefaGUI> tarefasCadastradas(3);
 
     tarefasCadastradas[0] = { 1, "FF4500", 0, 2, 5, 5, "" , EstadoTarefa::PRONTA };
     tarefasCadastradas[1] = { 2, "1E90FF", 0, 3, 8, 8, "" , EstadoTarefa::PRONTA };
@@ -17,7 +17,7 @@ std::vector<TarefaMock> GeradorMock::criarTarefasIniciais()
     return tarefasCadastradas;
 }
 
-std::vector<SnapshotTick> GeradorMock::gerarHistoricoInicial(std::vector<TarefaMock>& tarefasCadastradas, int maxTicks, int maxCPUs, int quantum)
+std::vector<SnapshotTick> GeradorMock::gerarHistoricoInicial(std::vector<TarefaGUI>& tarefasCadastradas, int maxTicks, int maxCPUs, int quantum)
 {
     srand(time(0));
 

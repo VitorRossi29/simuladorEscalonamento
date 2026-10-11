@@ -16,7 +16,7 @@ const char* estadoParaString(EstadoTarefa estado)
 }
 
 
-PainelTabelaTarefas::PainelTabelaTarefas(std::vector<TarefaMock>* tarefas,
+PainelTabelaTarefas::PainelTabelaTarefas(std::vector<TarefaGUI>* tarefas,
     const std::vector<SnapshotTick>* historico,
     const int* tickAtual) :
     m_tarefasRef(tarefas),
@@ -89,7 +89,7 @@ void PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
         // 4. Percorre o vetor de dados preenchendo as linhas da tabela
         for (size_t i = 0; i < m_tarefasRef->size(); i++)
         {
-            TarefaMock& tarefa = (*m_tarefasRef)[i];
+            TarefaGUI& tarefa = (*m_tarefasRef)[i];
 
             // Evita conflito de IDs entre elementos das linhas
             ImGui::PushID(tarefa.id);
@@ -198,7 +198,7 @@ void PainelTabelaTarefas::desenharFormularioInsercao()
 
     if (ImGui::Button("+ Adicionar Tarefa"))
     {
-        TarefaMock tarefaNova;
+        TarefaGUI tarefaNova;
         tarefaNova.id = proximoId();
 
         // Copia a string do buffer para o campo char[8] da struct garantindo a terminação nula

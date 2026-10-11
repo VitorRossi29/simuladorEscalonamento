@@ -50,4 +50,12 @@ typedef struct {
     int prazo;                // Deadline relativo a partir da ativação
     std::string lista_eventos;// Reservado para o Projeto B
     EstadoTarefa estado;
-} TarefaMock;
+} TarefaGUI;
+
+
+//Define se usara o modelo de escalonamento REAL ou modelo falso MOCK para testes
+
+enum class ModoFonteDados {
+    MOCK,
+    ENGINE_REAL
+};

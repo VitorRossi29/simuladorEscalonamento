@@ -50,7 +50,7 @@ void PainelGraficoGantt::desenharReguaEixoX(ImDrawList* listaDesenhos, ImVec2 in
         //Calculo da posicao X do tick t
         int posicaoXt = inicio.x + m_margemEsquerda + (t * m_larguraTick);
         
-        std::string txt = std::to_string(t);
+        std::string txt = std::to_string(t + 1);
 
         //Posicao do texto
         ImVec2 posicaoTexto(posicaoXt + 5.0f, inicio.y + 10.0f);
@@ -72,7 +72,7 @@ void PainelGraficoGantt::desenharReguaEixoX(ImDrawList* listaDesenhos, ImVec2 in
 
 void PainelGraficoGantt::desenharAgulhaTempoAtual(ImDrawList* listaDesenhos, ImVec2 inicio, size_t totalTarefas)
 {
-    if (m_tickAtualRef == nullptr) return;
+    if (m_tickAtualRef == nullptr || *m_modoExecucao == 1) return;
 
     // (*m_tickAtualRef + 1) posiciona a linha exatamente na borda DIREITA do tick mais recente
     float xAtual = inicio.x + m_margemEsquerda + ((*m_tickAtualRef + 1) * m_larguraTick);
@@ -84,7 +84,7 @@ void PainelGraficoGantt::desenharAgulhaTempoAtual(ImDrawList* listaDesenhos, ImV
 }
 
 //Faz as linhas horizontais que dividem as tarefas e coloca os "nomes" de cada tarefa no eixo y
-void PainelGraficoGantt::desenharEixoYELinhasBase(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaMock>& tarefasOrdenadas)
+void PainelGraficoGantt::desenharEixoYELinhasBase(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaGUI>& tarefasOrdenadas)
 {
     int totalTicks = static_cast<int>(m_historicoRef->size());
     for (size_t i = 0; i < tarefasOrdenadas.size(); i++)
@@ -107,16 +107,27 @@ void PainelGraficoGantt::desenharEixoYELinhasBase(ImDrawList* listaDesenhos, ImV
 }
 
 //Desenha o bloco correspondente ao estado de cada tarefa
-void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaMock>& tarefasOrdenadas)
+void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaGUI>& tarefasOrdenadas)
 {
     if (m_historicoRef == nullptr || m_tickAtualRef == nullptr) return;
 
-    // Define até qual tick o gráfico deve ser revelado na interface
-    int tickLimite = *m_tickAtualRef;
-    size_t totalTicksDisponiveis = m_historicoRef->size();
+    size_t limite;
 
-    // Garante que não ultrapassará o tamanho do vetor do histórico
-    size_t limite = std::min(static_cast<size_t>(tickLimite + 1), totalTicksDisponiveis);
+    // Define até qual tick o gráfico deve ser revelado na interface no modo passo a passo
+    // E defube o limite como o ultimo tick no modo instantaneo
+    if (!(*m_modoExecucao))
+    {
+        int tickLimite = *m_tickAtualRef;
+        size_t totalTicksDisponiveis = m_historicoRef->size();
+
+        // Garante que não ultrapassará o tamanho do vetor do histórico
+        limite = std::min(static_cast<size_t>(tickLimite + 1), totalTicksDisponiveis);
+    }
+    else
+    {
+        limite = m_historicoRef->size();
+    }
+    
 
     for (size_t t = 0; t < limite; t++)
     {
@@ -261,13 +272,26 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
     }
 }
 
-void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaMock>& tarefasOrdenadas)
+void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaGUI>& tarefasOrdenadas)
 {
     if (m_historicoRef == nullptr || m_tickAtualRef == nullptr) return;
 
-    int tickLimite = *m_tickAtualRef;
-    size_t totalTicksDisponiveis = m_historicoRef->size();
-    size_t limite = std::min(static_cast<size_t>(tickLimite + 1), totalTicksDisponiveis);
+    size_t limite;
+
+    // Define até qual tick o gráfico deve ser revelado na interface no modo passo a passo
+    // E defube o limite como o ultimo tick no modo instantaneo
+    if (!(*m_modoExecucao))
+    {
+        int tickLimite = *m_tickAtualRef;
+        size_t totalTicksDisponiveis = m_historicoRef->size();
+
+        // Garante que não ultrapassará o tamanho do vetor do histórico
+        limite = std::min(static_cast<size_t>(tickLimite + 1), totalTicksDisponiveis);
+    }
+    else
+    {
+        limite = m_historicoRef->size();
+    }
 
     for (size_t t = 0; t < limite; t++)
     {
@@ -332,8 +356,8 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
 
 }
 
-PainelGraficoGantt::PainelGraficoGantt(const std::vector<TarefaMock>* tarefas, const std::vector<SnapshotTick>* historico, 
-    const int* tickAtual, const int* qtdeCpus) :
+PainelGraficoGantt::PainelGraficoGantt(const std::vector<TarefaGUI>* tarefas, const std::vector<SnapshotTick>* historico, 
+    const int* tickAtual, const int* qtdeCpus, int* modoExecucao) :
     m_tarefasRef(tarefas),
     m_historicoRef(historico),
     m_tickAtualRef(tickAtual),
@@ -341,7 +365,8 @@ PainelGraficoGantt::PainelGraficoGantt(const std::vector<TarefaMock>* tarefas, c
     m_larguraTick(100.0f),
     m_alturaLinha(70.0f),
     m_margemEsquerda(100.0f),
-    m_margemTopo(100.0f)
+    m_margemTopo(100.0f),
+    m_modoExecucao(modoExecucao)
 {
 
 }
@@ -351,7 +376,7 @@ ImVec2 PainelGraficoGantt::dimensoesTotais()
     if (m_historicoRef == nullptr || m_tarefasRef == nullptr)
         return ImVec2(800, 600);
     /*
-    const std::vector<TarefaMock>* m_tarefasRef;
+    const std::vector<TarefaGUI>* m_tarefasRef;
     const std::vector<SnapshotTick>* m_historicoRef;
     */
     int totalTicks = static_cast<int>(m_historicoRef->size());
@@ -369,8 +394,8 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
     if (m_tarefasRef == nullptr || m_historicoRef == nullptr || m_historicoRef->empty())
         return;
 
-    std::vector<TarefaMock> t_Ord = *m_tarefasRef;
-    std::sort(t_Ord.begin(), t_Ord.end(), [](const TarefaMock& a, const TarefaMock& b) {
+    std::vector<TarefaGUI> t_Ord = *m_tarefasRef;
+    std::sort(t_Ord.begin(), t_Ord.end(), [](const TarefaGUI& a, const TarefaGUI& b) {
         return a.id > b.id;
         });
 
@@ -401,12 +426,23 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
         DrawLineEx(Vector2{ xMin, y + m_alturaLinha }, Vector2{ xMax, y + m_alturaLinha }, 1.0f, LIGHTGRAY);
     }
 
-    // Define até qual tick o gráfico deve ser revelado na interface
-    int tickLimite = *m_tickAtualRef;
-    size_t totalTicksDisponiveis = m_historicoRef->size();
+    size_t limite;
 
-    // Garante que não ultrapassará o tamanho do vetor do histórico
-    size_t limite = std::min(static_cast<size_t>(tickLimite + 1), totalTicksDisponiveis);
+    // Define até qual tick o gráfico deve ser revelado na interface no modo Passo a Passo
+    // Revela o grafico inteiro no modo instantaneo
+    if ((*m_modoExecucao) == 0)
+    {
+        int tickLimite = *m_tickAtualRef;
+        size_t totalTicksDisponiveis = m_historicoRef->size();
+
+        // Garante que não ultrapassará o tamanho do vetor do histórico
+        limite = std::min(static_cast<size_t>(tickLimite + 1), totalTicksDisponiveis);
+    }
+    else
+    {
+        limite = m_historicoRef->size();
+    }
+    
 
     // 3. Blocos de Execução e Hachura
     for (int t = 0; t < limite; t++)
@@ -538,9 +574,9 @@ void PainelGraficoGantt::renderizar()
         }
         
         // Ordenacao decrescente dos IDs para posicionamento vertical no Eixo Y
-        std::vector<TarefaMock> t_Ord = *m_tarefasRef;
+        std::vector<TarefaGUI> t_Ord = *m_tarefasRef;
 
-        std::sort(t_Ord.begin(), t_Ord.end(), [](const TarefaMock& a, const TarefaMock& b) {
+        std::sort(t_Ord.begin(), t_Ord.end(), [](const TarefaGUI& a, const TarefaGUI& b) {
             return a.id > b.id;
             });
 

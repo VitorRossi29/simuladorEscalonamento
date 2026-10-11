@@ -11,7 +11,7 @@ private:
 public:
     GeradorMock() = delete;
     //Instancia tarefas iniciais
-    static std::vector<TarefaMock> criarTarefasIniciais();
+    static std::vector<TarefaGUI> criarTarefasIniciais();
     //Gera o vetor de snapshots ao longo do tempo
-    static std::vector<SnapshotTick> gerarHistoricoInicial(std::vector<TarefaMock>& tarefas, int maxTicks, int maxCpus, int quantum);
+    static std::vector<SnapshotTick> gerarHistoricoInicial(std::vector<TarefaGUI>& tarefas, int maxTicks, int maxCpus, int quantum);
 };

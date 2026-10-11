@@ -4,7 +4,12 @@
 #include "imgui.h"
 #include "raylib.h"
 
-GerenciadorGUI::GerenciadorGUI() :
+#include "../core/MotorSimulacao.hpp"
+
+GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor = nullptr) :
+	m_motor(motor),
+	fonteDados(ModoFonteDados::MOCK),
+
 	m_tickAtual(0),
 	m_totalTicks(50),
 	m_emExecucaoAuto(false),
@@ -27,10 +32,10 @@ GerenciadorGUI::GerenciadorGUI() :
 
 	m_solicitarExportacao(false),
 
-	m_painelConfig(&m_quantidadeCPUs, &m_quantum, m_algoritmo),
+	m_painelConfig(&m_quantidadeCPUs, &m_quantum, m_algoritmo, &fonteDados),
 	m_painelControles(&m_tickAtual, &m_totalTicks, &m_emExecucaoAuto, &m_delayPasso, &m_modoExecucao, &m_algoritmoSelecionado, &m_solicitarExportacao),
 	m_painelTabela(&m_tarefas, &m_historico, &m_tickAtual),
-	m_painelGantt(&m_tarefas, &m_historico, &m_tickAtual, &m_quantidadeCPUs)
+	m_painelGantt(&m_tarefas, &m_historico, &m_tickAtual, &m_quantidadeCPUs, &m_modoExecucao)
 
 {
 	//Carregar dados dos Mocks e etc
@@ -146,6 +151,116 @@ void GerenciadorGUI::recalcularHistorico()
 {
 	m_historico = GeradorMock::gerarHistoricoInicial(m_tarefas, 
 		m_totalTicks, m_quantidadeCPUs, m_quantum);
+}
+
+void GerenciadorGUI::recalcularSimulacao()
+{
+	if (fonteDados == ModoFonteDados::ENGINE_REAL && m_motor != nullptr)
+	{
+		m_motor->executaTempoReal();
+		sincronizarComEngine();
+	}
+	else if(fonteDados == ModoFonteDados::MOCK)
+	{
+		m_tarefas = GeradorMock::criarTarefasIniciais();
+		m_historico = GeradorMock::gerarHistoricoInicial(m_tarefas, m_totalTicks, m_quantidadeCPUs, m_quantum);
+	}
+}
+
+void GerenciadorGUI::sincronizarComEngine()
+{
+	m_historico.clear();
+	m_tarefas.clear();
+
+	if (m_motor == nullptr) return;
+
+	// Conversao das tarefas da Engine para TarefaGUI
+	for (size_t t = 0; t < m_motor->getTarefas().size(); t++)
+	{
+		Tarefa tReal = m_motor->getTarefas()[t];
+		TarefaGUI tGUI;
+		tGUI.id = tReal.getId();
+		tGUI.duracao = tReal.getDuracao();
+		tGUI.periodo = tReal.getPeriodo();
+		tGUI.prazo = tReal.getPrazo();
+		tGUI.ingresso = tReal.getIngresso();
+		tGUI.cor = tReal.getCor(); // Certifique-se de que getCor() existe na Tarefa
+		m_tarefas.push_back(tGUI);
+	}
+
+	// Conversao do historico de ticks do motor para SnapshotTick
+	const auto& historicoEngine = m_motor->getHistorico();
+
+	for (size_t i = 0; i < historicoEngine.size(); i++)
+	{
+		std::vector<short> idsExecutando;
+		const Historico& historicoPasso = historicoEngine[i];
+		SnapshotTick snapGUI;
+		snapGUI.tick = historicoPasso.tempo;
+
+		// VERSAO TEMPORARIA PARA 1 CPU
+		if (historicoPasso.tarefaExecutada.getId() != -1)
+		{
+			idsExecutando.push_back(historicoPasso.tarefaExecutada.getId());
+		}
+
+		// QUANDO HOUVER N CPUS: ITERAR SOBRE A LISTA DE TAREFAS DA ENGINE E INSERIR TODOS OS IDS VALIDOS EM IDSEXECUTANDO
+
+
+		for (size_t s = 0; s < m_motor->getTarefas().size(); s++)
+		{
+			Tarefa tMotor = m_motor->getTarefas()[s];
+			SnapshotTarefa t;
+			t.idTarefa = tMotor.getId();
+
+			bool executandoSim = false;
+			for (size_t e = 0; e < idsExecutando.size() && !executandoSim; e++)
+			{
+				if (idsExecutando[e] == t.idTarefa)
+				{
+					t.estado = EstadoTarefa::EXECUTANDO;
+					executandoSim = true;
+				}
+			}
+			if (!executandoSim && tMotor.getProximaLiberacao() <= historicoPasso.tempo && tMotor.getTempoRestante() > 0)
+			{
+				t.estado = EstadoTarefa::PRONTA;
+			}
+			else if (!executandoSim)
+			{
+				t.estado = EstadoTarefa::ESPERANDO;
+			}
+
+			snapGUI.tarefas.push_back(t);
+		}
+
+		for (size_t d = 0; d < historicoPasso.idDeadlinesPerdidas.size(); d++)
+		{
+			EventoGantt novoEvento;
+			novoEvento.idTarefa = historicoPasso.idDeadlinesPerdidas[d];
+			novoEvento.tipo = TipoEvento::DEADLINE_STOURO;
+			snapGUI.eventos.push_back(novoEvento);
+		}
+
+		const std::vector<Tarefa>* tarefasDoMotor = &m_motor->getTarefas();
+
+		for (size_t taf = 0; taf < tarefasDoMotor->size(); taf++)
+		{
+			int ingresso = tarefasDoMotor->at(taf).getIngresso();
+			int periodo = tarefasDoMotor->at(taf).getPeriodo();
+			int tempoAtual = historicoPasso.tempo;
+			if (tempoAtual >= ingresso && (tempoAtual - ingresso) % periodo == 0)
+			{
+				EventoGantt novoEventoIngresso;
+				novoEventoIngresso.idTarefa = tarefasDoMotor->at(taf).getId();
+				novoEventoIngresso.tipo = TipoEvento::INGRESSO;
+				snapGUI.eventos.push_back(novoEventoIngresso);
+			}
+		}
+
+		//Adicao do Snapshot de Tick modificado no historico GUI
+		m_historico.push_back(snapGUI);
+	}
 }
 
 // Caso o grafico de Gantt seja maior que a tela do monitor, essa screenshot o contera por completo

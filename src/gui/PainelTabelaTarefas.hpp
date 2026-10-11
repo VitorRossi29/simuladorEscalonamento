@@ -8,7 +8,7 @@
 class PainelTabelaTarefas
 {
 private:
-	std::vector<TarefaMock>* m_tarefasRef;
+	std::vector<TarefaGUI>* m_tarefasRef;
 	//Ponteiro para vetor real de tarefas
 	
 	const std::vector<SnapshotTick>* m_historicoRef;
@@ -25,7 +25,7 @@ private:
 public:
 
 	//Associa os ponteiros do painel as estruturas ativas do GerenciadorGUI
-	PainelTabelaTarefas(std::vector<TarefaMock>* tarefas = nullptr, 
+	PainelTabelaTarefas(std::vector<TarefaGUI>* tarefas = nullptr, 
 		const std::vector<SnapshotTick>* historico = nullptr,
 		const int* tickAtual = 0);
 

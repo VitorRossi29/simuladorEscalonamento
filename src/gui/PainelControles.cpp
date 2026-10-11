@@ -34,14 +34,27 @@ void PainelControles::renderizar()
 		return;
 	}
 
-	ImGui::TextColored(ImColor(0, 127, 255, 255), "Tick Atual: %d/ %d", *m_tickAtualRef, *m_totalTicksRef);
+	//modo 0 = passo a passo; 1 = instantaneo
+
+	ImGui::RadioButton("Modo Passo a Passo", m_modoExecucao, 0);
+	ImGui::SameLine();
+	ImGui::RadioButton("Modo Instantaneo Completo", m_modoExecucao, 1);
+
+	if(*m_modoExecucao)
+		ImGui::TextColored(ImColor(0, 127, 255, 255), "Tick Atual: %d/ %d", *m_totalTicksRef, *m_totalTicksRef);
+	else
+		ImGui::TextColored(ImColor(0, 127, 255, 255), "Tick Atual: %d/ %d", (*m_tickAtualRef) + 1, *m_totalTicksRef);
 
 	if (m_emExecucaoAutoRef != nullptr && *m_emExecucaoAutoRef)
 		ImGui::TextColored(ImColor(0, 255, 0, 255), "Escalonador em Execucao");
+	else if(m_emExecucaoAutoRef != nullptr && ((*m_tickAtualRef) + 1 == *m_totalTicksRef) || *m_modoExecucao == 1)
+		ImGui::TextColored(ImColor(0, 0, 255, 255), "Escalonamento Completo");
 	else
 		ImGui::TextColored(ImColor(255, 0, 0, 255), "Escalonador Pausado");
 
 	ImGui::Separator();
+
+	ImGui::BeginDisabled(m_emExecucaoAutoRef != nullptr && *m_modoExecucao == 1);	//se estiver no modo completo
 
 	if (ImGui::Button("Executar"))
 	{
@@ -80,14 +93,11 @@ void PainelControles::renderizar()
 	{	
 		*m_tickAtualRef = 0;
 		*m_emExecucaoAutoRef = false;
-	}
+	}	
 
 	ImGui::SliderFloat("Velocidade de simulacao", m_delayPasso, 0.1f, 3.0f, "%.2f segundos/tick");
 
-	/*if (ImGui::Button("Tirar Foto da Tela"))
-	{
-		screenShotSimples();
-	}*/
+	ImGui::EndDisabled();
 	
 	if (ImGui::Button("Tirar Foto Completa"))
 	{

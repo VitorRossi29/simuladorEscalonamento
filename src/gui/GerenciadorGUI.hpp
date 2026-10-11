@@ -4,13 +4,20 @@
 #include "PainelTabelaTarefas.hpp"
 #include "PainelGraficoGantt.hpp"
 
+//Forward Declaration para avisar que a classe existe
+class MotorSimulacao;
+
 //Essa classe eh o controlador principal da GUI. Ele eh dono das 
 //instancias dos paineis e dos dados da simulacao em memoria
 class GerenciadorGUI
 {
 private:
-	
-	std::vector<TarefaMock> m_tarefas;
+	MotorSimulacao* m_motor; //Guarda ponteiro do Motor Simulacao
+
+	ModoFonteDados fonteDados; //Define se vai usar o simulador real ou versao Mock
+	ModoFonteDados m_fonteDadosAnterior; // Para detectar quando o usuário muda
+
+	std::vector<TarefaGUI> m_tarefas;
 	std::vector<SnapshotTick> m_historico;
 	
 	int m_tickAtual;
@@ -21,7 +28,7 @@ private:
 	int m_quantidadeCPUs;
 	int m_quantum;
 
-	int m_modoExecucao;     //modo 0 = passo a passo 1 = continuo
+	int m_modoExecucao;     //modo 0 = passo a passo; 1 = instantaneo
 	int m_algoritmoSelecionado;
 
 	int m_quantidadeCPUsAnterior, m_quantumAnterior, m_algoritmoAnterior;
@@ -41,8 +48,15 @@ private:
 
 	void recalcularHistorico();
 
+	void recalcularSimulacao();
+
+	// Traduz os dados da Engine para as structs da GUI
+	void sincronizarComEngine();
+
 public:
-	GerenciadorGUI();
+	GerenciadorGUI(MotorSimulacao* motor = nullptr);
+
+	void setMotor(MotorSimulacao* motor) { m_motor = motor; }
 
 	//Carrega as tarefas e o historico via GeradorMock
 	void inicializar();
@@ -52,7 +66,6 @@ public:
 	void atualizar(float deltaTime);
 
 	//Chama os metodos de renderizacao de cada painel filho (m_painelConfig, m_painelControles, m_painelTabela).
-
 	void renderizar();
 
 	void screenShotAvancada();

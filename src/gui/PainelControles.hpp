@@ -5,11 +5,11 @@ class PainelControles
 private:
     int* m_tickAtualRef;        //Posicao atual do relogio
     int* m_totalTicksRef;       //Limite maximo de ticks do historico carregado
-    bool* m_emExecucaoAutoRef;  //Booleano se se animacao esta em tempo real
+    bool* m_emExecucaoAutoRef;  //Booleano se animacao esta em tempo real
 
 
     float* m_delayPasso;     //Velocidade do play tempo em espera em segundos por tick
-    int* m_modoExecucao;     //modo 0 = passo a passo 1 = continuo
+    int* m_modoExecucao;     //modo 0 = passo a passo; 1 = instantaneo
     int* m_algoritmoSelecionado;      //0: RM 1: EDF OU 2: OUTRO
 
     bool* solicitarExportacaoRef; //Holy aura
