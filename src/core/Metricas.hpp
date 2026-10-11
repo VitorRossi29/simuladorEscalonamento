@@ -8,6 +8,7 @@ struct Historico
 	bool preemptada;
 	std::vector<short int> idDeadlinesPerdidas;
 	std::vector<SnapshotTarefas> todasTarefas;
+	std::vector<Tarefa> tarefas;
 	Tarefa tarefaExecutada;
 };
 

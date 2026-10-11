@@ -13,6 +13,7 @@ void MotorSimulacao::resetSimulacao()
 	tickAtual=0;
 	historicoTimeline.clear();
 
+
 	for(Tarefa& tarefa:tarefas)
 	{
 		tarefa.resetaTarefa();
@@ -132,6 +133,7 @@ Historico MotorSimulacao::passoSimulacao(Tarefa* tarefaMaiorPrioridade)
 		historicoAtual.todasTarefas.push_back(tarefa.getSnapshot());
 	}
 
+	historicoAtual.tarefas=tarefas;
 	historicoTimeline.push_back(historicoAtual);
 	tickAtual++;
 	return historicoAtual;
@@ -223,6 +225,10 @@ void MotorSimulacao::executaTempoReal()
 					break;
 				}
 			}
+			if(getTickAtual()>1000)
+			{
+				executando=false;
+			}
 		}
 	}
 	
@@ -241,6 +247,10 @@ void MotorSimulacao::executaTempoReal()
 					executando=true;
 					break;
 				}
+			}
+			if(getTickAtual()>1000)
+			{
+				executando=false;
 			}
 		}
 	}
@@ -267,4 +277,28 @@ void MotorSimulacao::executaPassoAPasso(int instrucao)
 	{
 		//retrocede um determinado numero de passos
 	}
+}
+
+void MotorSimulacao::resetaAPartirDe(int tick)
+{
+	//reseta completamente por ser menor igual o comeco da simulacao
+	if(tick<=0)
+	{
+		resetSimulacao();
+		return;
+	}
+	//Tick fora do limite atual
+	if(tick>=static_cast<int>(historicoTimeline.size()))
+	{
+		return;
+	}
+
+	//restaura o estado das tarefas usando o vetor salvo no historico daquele tick
+	tarefas=historicoTimeline[tick].tarefas;
+
+	//remove do historico tudo o que esta depois do tick
+	historicoTimeline.erase(historicoTimeline.begin()+tick, historicoTimeline.end());
+
+	//altera o relogio global para o tick
+	tickAtual=tick;
 }
