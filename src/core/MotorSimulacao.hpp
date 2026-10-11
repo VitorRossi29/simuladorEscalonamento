@@ -38,7 +38,16 @@ public:
 
 	void executaTempoReal();
 	void executaPassoAPasso(int instrucao);
+	void resetaAPartirDe(int tick);
 
 	//estatico para poder ser usado como funcao de comparacao para o sort
 	static bool comparaPeriodo(const Tarefa& t1, const Tarefa& t2);
+
+	const std::vector<Historico>& getHistorico() const { return historicoTimeline; }
+	const std::vector<Tarefa>& getTarefas() const { return tarefas; }
+	long int getTickAtual() const { return tickAtual; }
+	TipoAlgoritmo getAlgoritmo() const { return algoritmoSelecionado; }
+
+	void setAlgoritmo(TipoAlgoritmo algo) { algoritmoSelecionado=algo; }
+	void limparTarefas() { tarefas.clear(); resetSimulacao(); }
 };
