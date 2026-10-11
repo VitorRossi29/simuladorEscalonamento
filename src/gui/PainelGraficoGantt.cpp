@@ -338,10 +338,10 @@ PainelGraficoGantt::PainelGraficoGantt(const std::vector<TarefaMock>* tarefas, c
     m_historicoRef(historico),
     m_tickAtualRef(tickAtual),
     m_qtdeCpusRef(qtdeCpus),
-    m_larguraTick(40.0f),
-    m_alturaLinha(30.0f),
+    m_larguraTick(100.0f),
+    m_alturaLinha(70.0f),
     m_margemEsquerda(100.0f),
-    m_margemTopo(40.0f)
+    m_margemTopo(100.0f)
 {
 
 }
