@@ -4,9 +4,10 @@
 
 struct Historico
 {
-	int tempo;
+	int tempo; //tickAtual de tempo
 	bool preemptada;
 	std::vector<short int> idDeadlinesPerdidas;
+	std::vector<SnapshotTarefas> todasTarefas;
 	Tarefa tarefaExecutada;
 };
 
