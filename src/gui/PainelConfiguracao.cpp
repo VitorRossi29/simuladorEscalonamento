@@ -4,7 +4,7 @@
 #include "MockData.hpp"
 
 
-PainelConfiguracao::PainelConfiguracao(int* quantidadeCPUs, int* quantum, std::string algoritmo) :
+PainelConfiguracao::PainelConfiguracao(int* quantidadeCPUs, int* quantum, std::string &algoritmo) :
 	m_qtdeCpus(quantidadeCPUs),
 	m_quantum(quantum),
 	m_algoritmo(algoritmo)
@@ -13,7 +13,7 @@ PainelConfiguracao::PainelConfiguracao(int* quantidadeCPUs, int* quantum, std::s
 
 void PainelConfiguracao::renderizar()
 {
-	ImGui::SetNextWindowSize(ImVec2(800, 400), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(600, 200), ImGuiCond_FirstUseEver);
 
 	bool estaAberta = true;
 	if (!ImGui::Begin("Painel de Configuracao", &estaAberta))
@@ -22,31 +22,46 @@ void PainelConfiguracao::renderizar()
 		return;
 	}
 
-	ImGui::Text("Seletor de Algoritmo de Escalonamento");
+	ImGui::Text("Algoritmo de Escalonamento:");
 
-	if (ImGui::Button("Rate Monotonic")) 
-    {
-		m_algoritmo = "RM"; 
-    }
+	// Identificador local do estado do Radio Button
+	static int selecaoAlgoritmo = (m_algoritmo == "EDF") ? 1 : (m_algoritmo == "Outro" ? 2 : 0);
+
+	if (ImGui::RadioButton("Rate Monotonic (RM)", &selecaoAlgoritmo, 0))
+	{
+		m_algoritmo = "RM";
+	}
 	ImGui::SameLine();
-	if (ImGui::Button("Earliest Deadline First"))
+	if (ImGui::RadioButton("Earliest Deadline First (EDF)", &selecaoAlgoritmo, 1))
 	{
 		m_algoritmo = "EDF";
 	}
 	ImGui::SameLine();
-	if(ImGui::Button("Outro"))
+	if (ImGui::RadioButton("Outro", &selecaoAlgoritmo, 2))
 	{
 		m_algoritmo = "Outro";
 	}
 
-	static int valorCPUS = 1, valorQUANTUM = 2;
+	ImGui::Separator();
 
+	/*static int valorCPUS = 1, valorQUANTUM = 2;
 
 	ImGui::SliderInt("Numero de CPUs", &valorCPUS, 1, 50, "%d CPUs");
 	ImGui::SliderInt("Valor do Quantum", &valorQUANTUM, 1, 50, "%d Ticks");
 
 	*m_qtdeCpus = valorCPUS;
-	*m_quantum = valorQUANTUM;
+	*m_quantum = valorQUANTUM;*/
+
+	// Controles diretamente vinculados às variáveis do GerenciadorGUI
+	if (m_qtdeCpus != nullptr)
+	{
+		ImGui::SliderInt("Numero de CPUs", m_qtdeCpus, 1, 16, "%d CPUs");
+	}
+
+	if (m_quantum != nullptr)
+	{
+		ImGui::SliderInt("Valor do Quantum", m_quantum, 1, 20, "%d Ticks");
+	}
 
 	static bool carregarTexto = false;
 

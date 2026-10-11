@@ -1,22 +1,24 @@
 #include "PainelControles.hpp"
 #include "imgui.h"
+#include "raylib.h"
 
 
 PainelControles::PainelControles(int* tickAtual, int* totalTicks, 
 	bool* emExecucaoAuto, float* delayPasso, 
-	int* modoExecucao, int* algoritmoSelecionado) :
+	int* modoExecucao, int* algoritmoSelecionado, bool* exportacao) :
 	m_tickAtualRef(tickAtual),
 	m_totalTicksRef(totalTicks),
 	m_emExecucaoAutoRef(emExecucaoAuto),
 	m_delayPasso(delayPasso),
 	m_modoExecucao(modoExecucao),
-	m_algoritmoSelecionado(algoritmoSelecionado)
+	m_algoritmoSelecionado(algoritmoSelecionado),
+	solicitarExportacaoRef (exportacao)
 {
 }
 
 void PainelControles::renderizar()
 {
-	ImGui::SetNextWindowSize(ImVec2(800, 400), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(600, 200), ImGuiCond_FirstUseEver);
 
 	bool estaAberta = true;
 	if (!ImGui::Begin("Controles da Simulacao", &estaAberta))
@@ -38,14 +40,6 @@ void PainelControles::renderizar()
 		ImGui::TextColored(ImColor(0, 255, 0, 255), "Escalonador em Execucao");
 	else
 		ImGui::TextColored(ImColor(255, 0, 0, 255), "Escalonador Pausado");
-
-	ImGui::Separator();
-
-	ImGui::RadioButton("Rate Monotonic", m_algoritmoSelecionado, 0);
-	ImGui::SameLine();
-	ImGui::RadioButton("Earliest Deadline First", m_algoritmoSelecionado, 1);
-	ImGui::SameLine();
-	ImGui::RadioButton("Outro", m_algoritmoSelecionado, 2);
 
 	ImGui::Separator();
 
@@ -90,5 +84,24 @@ void PainelControles::renderizar()
 
 	ImGui::SliderFloat("Velocidade de simulacao", m_delayPasso, 0.1f, 3.0f, "%.2f segundos/tick");
 
+	/*if (ImGui::Button("Tirar Foto da Tela"))
+	{
+		screenShotSimples();
+	}*/
+	
+	if (ImGui::Button("Tirar Foto Completa"))
+	{
+		if (solicitarExportacaoRef != nullptr)
+		{
+			*solicitarExportacaoRef = true; // Notifica o GerenciadorGUI
+		}
+	}
+
 	ImGui::End();
+}
+
+//Tira foto simples da tela
+void PainelControles::screenShotSimples()
+{
+	TakeScreenshot("../../../escalonamento_gantt.png");
 }

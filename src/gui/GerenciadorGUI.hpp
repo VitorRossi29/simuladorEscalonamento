@@ -2,6 +2,7 @@
 #include "PainelConfiguracao.hpp"
 #include "PainelControles.hpp"
 #include "PainelTabelaTarefas.hpp"
+#include "PainelGraficoGantt.hpp"
 
 //Essa classe eh o controlador principal da GUI. Ele eh dono das 
 //instancias dos paineis e dos dados da simulacao em memoria
@@ -27,9 +28,16 @@ private:
 
 	std::string m_algoritmo;
 
+
+	bool m_exibirConfig, m_exibirControles, m_exibirTabela, m_exibirGantt;
+	bool m_solicitarExportacao; //Holy aura
+
+	//PRECISAM SER OS ULTIMOS
 	PainelConfiguracao m_painelConfig;
 	PainelControles m_painelControles;
 	PainelTabelaTarefas m_painelTabela;
+	PainelGraficoGantt m_painelGantt;
+
 
 	void recalcularHistorico();
 
@@ -46,4 +54,6 @@ public:
 	//Chama os metodos de renderizacao de cada painel filho (m_painelConfig, m_painelControles, m_painelTabela).
 
 	void renderizar();
+
+	void screenShotAvancada();
 };

@@ -32,7 +32,7 @@ PainelTabelaTarefas::PainelTabelaTarefas(std::vector<TarefaMock>* tarefas,
 
 void PainelTabelaTarefas::renderizar()
 {
-    ImGui::SetNextWindowSize(ImVec2(800, 400), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(600, 200), ImGuiCond_FirstUseEver);
 
 	bool estaAberta = true;
 	if (!ImGui::Begin("Painel de Tarefas", &estaAberta))

@@ -11,7 +11,7 @@ private:
 	int* m_quantum;
 	std::string& m_algoritmo;
 public:
-	PainelConfiguracao(int* quantidadeCPUs, int* quantum, std::string algoritmo);
+	PainelConfiguracao(int* quantidadeCPUs, int* quantum, std::string& algoritmo);
 
 	//desenhar o painel com o seletor de algoritmo e quantidade de cpus e o botao para carregar arquivo txt
 	void renderizar ();
