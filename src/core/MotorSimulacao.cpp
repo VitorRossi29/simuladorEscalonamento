@@ -125,7 +125,11 @@ Historico MotorSimulacao::passoSimulacao(Tarefa* tarefaMaiorPrioridade)
 				tarefa+=1;
 			}
 		}
-		historicoAtual.tempo=tickAtual;
+	}
+	historicoAtual.tempo=tickAtual;
+	for(const Tarefa& tarefa:tarefas)
+	{
+		historicoAtual.todasTarefas.push_back(tarefa.getSnapshot());
 	}
 
 	historicoTimeline.push_back(historicoAtual);
@@ -239,5 +243,28 @@ void MotorSimulacao::executaTempoReal()
 				}
 			}
 		}
+	}
+}
+
+void MotorSimulacao::executaPassoAPasso(int instrucao)
+{
+	if(instrucao>0)
+	{
+		//avanca um determinado numero de passos
+		for(int i=0;i<instrucao;i++)
+		{
+			if(algoritmoSelecionado==TipoAlgoritmo::RATE_MONOTONIC)
+			{
+				Historico historico=passoSimulacao(achaProximaRM());
+			}
+			else if(algoritmoSelecionado==TipoAlgoritmo::EARLIEST_DEADLINE_FIRST)
+			{
+				Historico historico=passoSimulacao(achaProximaEDF());
+			}
+		}
+	}
+	else if(instrucao<0)
+	{
+		//retrocede um determinado numero de passos
 	}
 }

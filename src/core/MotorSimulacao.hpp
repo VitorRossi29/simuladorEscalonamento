@@ -37,6 +37,7 @@ public:
 	bool escalabilidadeRM();
 
 	void executaTempoReal();
+	void executaPassoAPasso(int instrucao);
 
 	//estatico para poder ser usado como funcao de comparacao para o sort
 	static bool comparaPeriodo(const Tarefa& t1, const Tarefa& t2);
