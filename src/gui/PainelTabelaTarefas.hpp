@@ -13,7 +13,7 @@ private:
 	
 	const std::vector<SnapshotTick>* m_historicoRef;
 	const int* m_tickAtualRef;
-	//Ponteiro para o snapshot de tempo atual no player
+	//Ponteiro para o snapshot de tempo 
 	
 	//Informacoes para inserir novas tarefas (formulario)
 	int m_novoIngresso;

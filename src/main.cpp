@@ -19,7 +19,9 @@ int main() {
     // Inicializa a integração do ImGui
     rlImGuiSetup(true);
 
-    GerenciadorGUI GUI;
+    MotorSimulacao motorReal;
+
+    GerenciadorGUI GUI(&motorReal); // Injetar o motor na GUI
     GUI.inicializar();
 
     while (!WindowShouldClose()) 

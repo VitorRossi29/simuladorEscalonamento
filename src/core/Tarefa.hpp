@@ -69,8 +69,10 @@ public:
 	int getQuantidadeExecucoes() const { return snapshot.quantidadeExecucoes; }
 	EstadoTarefa getEstado() const { return snapshot.estado; }
 	SnapshotTarefas getSnapshot() const { return snapshot; }
+
 	const std::string& getCor() const { return cor; }
 	void setCor(const std::string& novaCor) { cor=novaCor; }
+
 	void setEstado(EstadoTarefa estado) { snapshot.estado=estado; }
 };
 

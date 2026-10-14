@@ -184,7 +184,8 @@ void GerenciadorGUI::sincronizarComEngine()
 		tGUI.periodo = tReal.getPeriodo();
 		tGUI.prazo = tReal.getPrazo();
 		tGUI.ingresso = tReal.getIngresso();
-		tGUI.cor = tReal.getCor(); // Certifique-se de que getCor() existe na Tarefa
+		strncpy(tGUI.cor, tReal.getCor().c_str(), sizeof(tGUI.cor) - 1);
+		tGUI.cor[sizeof(tGUI.cor) - 1] = '\0';
 		m_tarefas.push_back(tGUI);
 	}
 
