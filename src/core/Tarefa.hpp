@@ -14,7 +14,8 @@ enum class EstadoTarefa
 enum class TipoAlgoritmo
 {
     RATE_MONOTONIC,
-    EARLIEST_DEADLINE_FIRST
+    EARLIEST_DEADLINE_FIRST,
+	OUTRO
 };
 
 struct SnapshotTarefas
@@ -26,6 +27,7 @@ struct SnapshotTarefas
 	int tempoEspera;
 	EstadoTarefa estado;
 	int quantidadeExecucoes;
+	int ultimaCPUExecutada; //id da ultima CPU pra ver se foi preemptada 
 };
 
 class Tarefa

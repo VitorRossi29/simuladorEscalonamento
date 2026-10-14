@@ -76,14 +76,14 @@ Historico MotorSimulacao::passoSimulacao(Tarefa* tarefaMaiorPrioridade)
 		historicoAtual.tempo=tickAtual;
 		historicoAtual.preemptada=false;
 		//cria uma tarefa com a construtora sem parametro para indicar que nenhuma tarefa foi executada nesse tick
-		historicoAtual.tarefaExecutada=Tarefa();
+		historicoAtual.tarefaExecutada.push_back(Tarefa());
 	}
 	else
 	{
 		//armazena a tarefa depois de decrementar o tempo restante
 		tarefaMaiorPrioridade->setEstado(EstadoTarefa::EXECUTANDO);
 		(*tarefaMaiorPrioridade)--;
-		historicoAtual.tarefaExecutada=*tarefaMaiorPrioridade; //tarefa que sera executada nesse tick
+		historicoAtual.tarefaExecutada.push_back(*tarefaMaiorPrioridade); //tarefa que sera executada nesse tick
 
 		//para o primeiro tick nunca eh preemptada
 		if(tickAtual==0)
@@ -93,8 +93,8 @@ Historico MotorSimulacao::passoSimulacao(Tarefa* tarefaMaiorPrioridade)
 		//compara se eh igual a tarefa anterior e se a mesma ja terminou
 		else
 		{
-			if(historicoTimeline.back().tarefaExecutada.getId()!=tarefaMaiorPrioridade->getId() && //tarefa diferente da anterior
-				historicoTimeline.back().tarefaExecutada.getTempoRestante()>0) //tarefa anterior ainda nao terminou
+			if(historicoTimeline.back().tarefaExecutada.back().getId()!=tarefaMaiorPrioridade->getId() && //tarefa diferente da anterior
+				historicoTimeline.back().tarefaExecutada.back().getTempoRestante()>0) //tarefa anterior ainda nao terminou
 				historicoAtual.preemptada=true;
 			else
 				historicoAtual.preemptada=false;
@@ -276,6 +276,14 @@ void MotorSimulacao::executaPassoAPasso(int instrucao)
 	else if(instrucao<0)
 	{
 		//retrocede um determinado numero de passos
+		int tickAlvo=tickAtual+instrucao;
+
+		if(tickAlvo<0)
+		{
+			tickAlvo=0;
+		}
+
+		resetaAPartirDe(tickAlvo);
 	}
 }
 

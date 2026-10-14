@@ -9,7 +9,7 @@ struct Historico
 	std::vector<short int> idDeadlinesPerdidas;
 	std::vector<SnapshotTarefas> todasTarefas;
 	std::vector<Tarefa> tarefas;
-	Tarefa tarefaExecutada;
+	std::vector<Tarefa> tarefaExecutada;
 };
 
 struct Metricas
