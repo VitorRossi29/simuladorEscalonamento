@@ -34,10 +34,13 @@ private:
 	int m_quantidadeCPUsAnterior, m_quantumAnterior, m_algoritmoAnterior;
 
 	std::string m_algoritmo;
-
+	std::string caminhoArquivo;
 
 	bool m_exibirConfig, m_exibirControles, m_exibirTabela, m_exibirGantt;
 	bool m_solicitarExportacao; //Holy aura
+
+	double utilizacaoCPU;
+	bool querUtilizacao;
 
 	//PRECISAM SER OS ULTIMOS
 	PainelConfiguracao m_painelConfig;
@@ -45,9 +48,7 @@ private:
 	PainelTabelaTarefas m_painelTabela;
 	PainelGraficoGantt m_painelGantt;
 
-
-	void recalcularHistorico();
-
+	// Refaz os calculos após mudanças nas simulacao
 	void recalcularSimulacao();
 
 	// Traduz os dados da Engine para as structs da GUI
@@ -68,5 +69,9 @@ public:
 	//Chama os metodos de renderizacao de cada painel filho (m_painelConfig, m_painelControles, m_painelTabela).
 	void renderizar();
 
+	void carregarArquivoEncontrado();
+
 	void screenShotAvancada();
+
+	double getUtilizacaoCPU();
 };

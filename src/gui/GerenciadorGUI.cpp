@@ -5,6 +5,7 @@
 #include "raylib.h"
 
 #include "../core/MotorSimulacao.hpp"
+#include "../reader/Leitor.hpp"
 
 GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor = nullptr) :
 	m_motor(motor),
@@ -20,6 +21,7 @@ GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor = nullptr) :
 	m_modoExecucao(0),
 	m_algoritmoSelecionado(0),
 	m_algoritmo("RM"),
+	caminhoArquivo(""),
 
 	m_quantidadeCPUsAnterior(m_quantidadeCPUs),
 	m_quantumAnterior(m_quantum),
@@ -32,7 +34,7 @@ GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor = nullptr) :
 
 	m_solicitarExportacao(false),
 
-	m_painelConfig(&m_quantidadeCPUs, &m_quantum, m_algoritmo, &fonteDados),
+	m_painelConfig(&m_quantidadeCPUs, &m_quantum, m_algoritmo, &fonteDados, caminhoArquivo),
 	m_painelControles(&m_tickAtual, &m_totalTicks, &m_emExecucaoAuto, &m_delayPasso, &m_modoExecucao, &m_algoritmoSelecionado, &m_solicitarExportacao),
 	m_painelTabela(&m_tarefas, &m_historico, &m_tickAtual),
 	m_painelGantt(&m_tarefas, &m_historico, &m_tickAtual, &m_quantidadeCPUs, &m_modoExecucao)
@@ -92,7 +94,13 @@ void GerenciadorGUI::atualizar(float deltaTime)
 void GerenciadorGUI::renderizar()
 {
 	int numeroTarefas = static_cast<int>(m_tarefas.size());
-	
+
+	float utilizacao = 0.0f;
+	bool escalonavel = false;
+	int totalDeadlines = 0;
+	float tempoOciosoPercentual = 0.0f;
+	int ticksOciosos = 0;
+
 	//Validacao dos limites de tempo
 	if (!m_historico.empty() && m_tickAtual >= 0 && m_tickAtual < static_cast<int>(m_historico.size()) )
 	{
@@ -110,9 +118,11 @@ void GerenciadorGUI::renderizar()
 			ImGui::EndMainMenuBar();
 		}
 
+		bool configAlteradaNoPainel = false;
+
 		//Desenho Sequencial dos Paineis
 		if (m_exibirConfig)
-			m_painelConfig.renderizar();
+			configAlteradaNoPainel = m_painelConfig.renderizar();
 
 		if(m_exibirControles)
 			m_painelControles.renderizar();
@@ -124,39 +134,126 @@ void GerenciadorGUI::renderizar()
 			m_painelGantt.renderizar();
 
 		// Checa se as tarefas mudaram OU se alguma configuração foi alterada na interface
+		// Deteccao e Reacao unificada de mudanças
 		bool tarefasMudaram = (numeroTarefas != static_cast<int>(m_tarefas.size()));
-		bool configMudou = (m_quantidadeCPUs != m_quantidadeCPUsAnterior ||
+		bool valoresMudaram = (m_quantidadeCPUs != m_quantidadeCPUsAnterior ||
 			m_quantum != m_quantumAnterior ||
-			m_algoritmoSelecionado != m_algoritmoAnterior);
+			m_algoritmoSelecionado != m_algoritmoAnterior ||
+			fonteDados != m_fonteDadosAnterior);
 
-		//Deteccao e Reacao da Mudancas nos Dados
-		if (tarefasMudaram || configMudou)
+		if (configAlteradaNoPainel || tarefasMudaram || valoresMudaram)
 		{
-			recalcularHistorico();
+			recalcularSimulacao();
+
+			//Reset da agulha de tempo
+			m_tickAtual = 0;
+			//recalcularHistorico();
 
 			// Atualiza os rastreadores de estado
 			m_quantidadeCPUsAnterior = m_quantidadeCPUs;
 			m_quantumAnterior = m_quantum;
 			m_algoritmoAnterior = m_algoritmoSelecionado;
+			m_fonteDadosAnterior = fonteDados;
 		}
 
 		if (m_solicitarExportacao)
 		{
 			screenShotAvancada();
 		}
+
+		if (m_exibirConfig)
+		{
+			if (fonteDados == ModoFonteDados::ENGINE_REAL && m_motor != nullptr)
+			{
+				utilizacao = m_motor->calculaUtilizacaoCPU();
+				escalonavel = m_motor->verificaEscalabilidade();
+
+				const auto& historico = m_motor->getHistorico();
+				int totalTicks = static_cast<int>(historico.size());
+
+				if (totalTicks > 0)
+				{
+					for (size_t i = 0; i < historico.size(); i++)
+					{
+						// Acumula prazos perdidos do tick
+						totalDeadlines += static_cast<int>(historico[i].idDeadlinesPerdidas.size());
+
+						// Conta se a CPU ficou idle no tick (id == -1)
+						if (historico[i].tarefaExecutada.getId() == -1)
+						{
+							ticksOciosos++;
+						}
+					}
+
+					//  Calcula a porcentagem de ociosidade
+					tempoOciosoPercentual = (static_cast<float>(ticksOciosos) / totalTicks) * 100.0f;
+				}
+			}
+
+			m_painelConfig.renderizarMetricas(m_tarefas, utilizacao, escalonavel, totalDeadlines, tempoOciosoPercentual);
+		}
+		
 	}
 }
 
-void GerenciadorGUI::recalcularHistorico()
+void GerenciadorGUI::carregarArquivoEncontrado()
 {
-	m_historico = GeradorMock::gerarHistoricoInicial(m_tarefas, 
-		m_totalTicks, m_quantidadeCPUs, m_quantum);
+	// Instanciacao local do leitor
+	Leitor leitor;
+	Configuracao config = leitor.lerArquivo(caminhoArquivo);
+
+	// Atualizacao do estado na GUI
+	m_quantidadeCPUs = config.quantidadeCPUs;
+	m_quantum = config.quantum;
+	TipoAlgoritmo tipodesse = config.algoritmo;
+	if (tipodesse == TipoAlgoritmo::RATE_MONOTONIC)
+		m_algoritmo = "RM";
+	else if (tipodesse == TipoAlgoritmo::EARLIEST_DEADLINE_FIRST)
+		m_algoritmo = "EDF";
+	else
+		m_algoritmo = "Outro";
+
+	// Atualizacao do Motor
+	m_motor->limparTarefas();
+
+	const std::vector<std::string> paletaCores = {
+		"#FF5733", "#33FF57", "#3357FF", "#F39C12",
+		"#8E44AD", "#1ABC9C", "#D35400", "#2C3E50"
+	};
+
+	for (size_t i = 0; i < config.tarefas.size(); i++)
+	{
+		Tarefa& t = config.tarefas[i];
+
+		if (t.getCor().empty() || t.getCor() == "\0" || t.getCor() == "null")
+		{
+			std::string corNova = paletaCores[i % paletaCores.size()];
+			t.setCor(corNova);
+		}
+
+		m_motor->addTarefa(t);
+	}
+	m_motor->setAlgoritmo(config.algoritmo);
+
+	// Reinicio da simulacao
+	m_tickAtual = 0;
+	m_motor->resetSimulacao();
+	m_motor->executaTempoReal();
+
+	sincronizarComEngine();
+
 }
 
 void GerenciadorGUI::recalcularSimulacao()
 {
 	if (fonteDados == ModoFonteDados::ENGINE_REAL && m_motor != nullptr)
 	{
+		if (m_algoritmo == "RM")
+			m_motor->setAlgoritmo(TipoAlgoritmo::RATE_MONOTONIC);
+		else if (m_algoritmo == "EDF")
+			m_motor->setAlgoritmo(TipoAlgoritmo::EARLIEST_DEADLINE_FIRST);
+
+		m_motor->resetSimulacao();
 		m_motor->executaTempoReal();
 		sincronizarComEngine();
 	}
@@ -165,6 +262,8 @@ void GerenciadorGUI::recalcularSimulacao()
 		m_tarefas = GeradorMock::criarTarefasIniciais();
 		m_historico = GeradorMock::gerarHistoricoInicial(m_tarefas, m_totalTicks, m_quantidadeCPUs, m_quantum);
 	}
+	//Ajuste de Limites de tempo
+	m_totalTicks = static_cast<int>(m_historico.size());
 }
 
 void GerenciadorGUI::sincronizarComEngine()
