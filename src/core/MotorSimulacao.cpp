@@ -13,6 +13,8 @@ void MotorSimulacao::resetSimulacao()
 	tickAtual=0;
 	historicoTimeline.clear();
 
+	//cria as CPUs de acordo com a quantidade estabelecida 
+	todasCPUs.assign(quantCPUs, CPU());
 
 	for(Tarefa& tarefa:tarefas)
 	{
@@ -20,32 +22,9 @@ void MotorSimulacao::resetSimulacao()
 	}
 }
 
-Tarefa* MotorSimulacao::achaProximaRM()
+std::vector<Tarefa*> MotorSimulacao::achaProxima(int quantCPUs)
 {
-	Tarefa* tarefaMaiorPrioridade=nullptr;
-
-	//encontra a tarefa com maior prioridade que esteja pronta para executar
-	for(Tarefa& tarefa:tarefas)
-	{
-		//muda o estado da tarefa se estiver pronta para executar
-		if (tarefa.getProximaLiberacao()<=tickAtual && tarefa.getTempoRestante()>0)
-		{
-			tarefa.setEstado(EstadoTarefa::PRONTA);
-
-			//escolhe a tarefa com o maior valor numerico de prioridade das PRONTAS
-			if(tarefaMaiorPrioridade==nullptr || tarefa.getPrioridade()>tarefaMaiorPrioridade->getPrioridade())
-			{
-				tarefaMaiorPrioridade=&tarefa;
-			}
-		}
-	}
-
-	return tarefaMaiorPrioridade;
-}
-
-Tarefa* MotorSimulacao::achaProximaEDF()
-{
-	Tarefa* tarefaMaiorPrioridade=nullptr;
+	std::vector<Tarefa*> tarefasProntas;
 
 	//encontra a tarefa com maior prioridade que esteja pronta para executar
 	for (Tarefa& tarefa:tarefas)
@@ -54,50 +33,84 @@ Tarefa* MotorSimulacao::achaProximaEDF()
 		if (tarefa.getProximaLiberacao()<=tickAtual && tarefa.getTempoRestante()>0)
 		{
 			tarefa.setEstado(EstadoTarefa::PRONTA);
-
-			//escolhe a tarefa com o menor deadline ja PRONTA
-			if(tarefaMaiorPrioridade==nullptr || tarefa.getProximoDeadline()<tarefaMaiorPrioridade->getProximoDeadline())
-			{
-				tarefaMaiorPrioridade=&tarefa;
-			}
+			tarefasProntas.push_back(&tarefa);
 		}
 	}
-	
-	return tarefaMaiorPrioridade;
+
+	//ordena com a funcao de comparacao as tarefas mais prioritarias de forma decrescente com base no algoritmo atual
+	if(algoritmoSelecionado==TipoAlgoritmo::RATE_MONOTONIC)
+	{
+		std::sort(tarefasProntas.begin(), tarefasProntas.end(), [this](const Tarefa* a, const Tarefa* b) 
+		{
+			return comparaRM(a, b);
+		});
+	}
+
+	else if(algoritmoSelecionado==TipoAlgoritmo::EARLIEST_DEADLINE_FIRST)
+	{
+		std::sort(tarefasProntas.begin(), tarefasProntas.end(), [this](const Tarefa* a, const Tarefa* b) 
+		{
+			return comparaEDF(a, b);
+		});
+	}
+
+	//limita o vetor para retornar apenas a quantidade maxima de CPUs disponiveis
+	if (tarefasProntas.size()>(quantCPUs))
+	{
+		tarefasProntas.resize(quantCPUs);
+	}
+
+	return tarefasProntas;
 }
 
-Historico MotorSimulacao::passoSimulacao(Tarefa* tarefaMaiorPrioridade)
+Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPrioridade)
 {
 	Historico historicoAtual;
 
-	if(tarefaMaiorPrioridade==nullptr)
+	//nenhuma tarefa pronta para executar
+	if(tarefasMaiorPrioridade.empty())
 	{
-		//nenhuma tarefa pronta para executar
 		historicoAtual.tempo=tickAtual;
-		historicoAtual.preemptada=false;
+		for (int i=0;i<quantCPUs;i++)
+		{
+			todasCPUs[i].setTarefaAtual(nullptr); //indica que nenhuma tarefa esta sendo executada na CPU
+			todasCPUs[i].atualizaEstado(); //muda para OCIOSA e incrementa tempo ociosa
+		}
+
 		//cria uma tarefa com a construtora sem parametro para indicar que nenhuma tarefa foi executada nesse tick
-		historicoAtual.tarefaExecutada.push_back(Tarefa());
+		historicoAtual.tarefasExecutadas.push_back(Tarefa());
 	}
 	else
 	{
 		//armazena a tarefa depois de decrementar o tempo restante
-		tarefaMaiorPrioridade->setEstado(EstadoTarefa::EXECUTANDO);
-		(*tarefaMaiorPrioridade)--;
-		historicoAtual.tarefaExecutada.push_back(*tarefaMaiorPrioridade); //tarefa que sera executada nesse tick
-
-		//para o primeiro tick nunca eh preemptada
-		if(tickAtual==0)
+		for (Tarefa* t:tarefasMaiorPrioridade)
 		{
-			historicoAtual.preemptada=false;
+			t->setEstado(EstadoTarefa::EXECUTANDO);
+			(*t)--; //Decrementa o tempo restante
+			historicoAtual.tarefasExecutadas.push_back(*t); //tarefas que serao executadas nesse tick
 		}
-		//compara se eh igual a tarefa anterior e se a mesma ja terminou
-		else
+		
+		//atribui as tarefas para as CPUs, ve se foram preemptadas e incrementa tempo ocioso
+		for(int i=0;i<quantCPUs;i++)
 		{
-			if(historicoTimeline.back().tarefaExecutada.back().getId()!=tarefaMaiorPrioridade->getId() && //tarefa diferente da anterior
-				historicoTimeline.back().tarefaExecutada.back().getTempoRestante()>0) //tarefa anterior ainda nao terminou
-				historicoAtual.preemptada=true;
+			if (i<tarefasMaiorPrioridade.size())
+			{
+				todasCPUs[i].setTarefaAtual(tarefasMaiorPrioridade[i]); //atribui as tarefas
+
+				if (todasCPUs[i].getTarefaAnterior()!=nullptr && //tarefa anterior nao nula
+					todasCPUs[i].getTarefaAtual()!=todasCPUs[i].getTarefaAnterior() && //tarefa atual diferente da anterior
+					todasCPUs[i].getTarefaAnterior()->getTempoRestante()>0) //tarefa anterior ainda nao terminou
+				{
+					historicoAtual.idTarefasPreemptadas.push_back(todasCPUs[i].getTarefaAnterior()->getId()); //foi preemptada
+				}
+			}
+			
 			else
-				historicoAtual.preemptada=false;
+			{ 
+				todasCPUs[i].setTarefaAtual(nullptr);
+			}
+
+			todasCPUs[i].atualizaEstado(); //muda para EXECUTANDO ou OCIOSA e incrementa tempo ociosa se preciso
 		}
 
 		for(Tarefa& tarefa:tarefas)
@@ -121,7 +134,9 @@ Historico MotorSimulacao::passoSimulacao(Tarefa* tarefaMaiorPrioridade)
 					tarefa.setEstado(EstadoTarefa::TERMINADA);
 			}
 			//incrementa o tempo de espera da tarefa
-			else if(tarefa.getEstado()==EstadoTarefa::PRONTA && &tarefa!=tarefaMaiorPrioridade)
+			//find procura a tarefa no vetor, se nao achar retorna o final do vetor, se achar retorna o ponteiro para a tarefa
+			else if(tarefa.getEstado()==EstadoTarefa::PRONTA &&
+				std::find(tarefasMaiorPrioridade.begin(), tarefasMaiorPrioridade.end(), &tarefa)==tarefasMaiorPrioridade.end())
 			{
 				tarefa+=1;
 			}
@@ -183,7 +198,7 @@ bool MotorSimulacao::verificaEscalabilidade()
 	}
 }
 
-//utiliza a fórmula do Maziero
+//utiliza a fÃ³rmula do Maziero
 bool MotorSimulacao::escalabilidadeRM()
 {
 	int n=tarefas.size();
@@ -210,48 +225,25 @@ void MotorSimulacao::executaTempoReal()
 	if(algoritmoSelecionado==TipoAlgoritmo::RATE_MONOTONIC)
 	{
 		preparaSimulacaoRM();
+	}
 
-		while(executando)
+	while(executando)
+	{
+		//executa um passo da simulacao
+		Historico historico=passoSimulacao(achaProxima(quantCPUs));
+		//verifica se todas as tarefas terminaram
+		executando=false;
+		for (const Tarefa& tarefa:tarefas)
 		{
-			//executa um passo da simulacao
-			Historico historico=passoSimulacao(achaProximaRM());
-			//verifica se todas as tarefas terminaram
-			executando=false;
-			for (const Tarefa& tarefa:tarefas)
+			if (tarefa.getEstado()!=EstadoTarefa::TERMINADA)
 			{
-				if (tarefa.getEstado()!=EstadoTarefa::TERMINADA)
-				{
-					executando=true;
-					break;
-				}
-			}
-			if(getTickAtual()>1000)
-			{
-				executando=false;
+				executando=true;
+				break;
 			}
 		}
-	}
-	
-	else if(algoritmoSelecionado==TipoAlgoritmo::EARLIEST_DEADLINE_FIRST)
-	{
-		while(executando)
+		if(getTickAtual()>1000)
 		{
-			//executa um passo da simulacao
-			Historico historico=passoSimulacao(achaProximaEDF());
-			//verifica se todas as tarefas terminaram
 			executando=false;
-			for (const Tarefa& tarefa:tarefas)
-			{
-				if (tarefa.getEstado()!=EstadoTarefa::TERMINADA)
-				{
-					executando=true;
-					break;
-				}
-			}
-			if(getTickAtual()>1000)
-			{
-				executando=false;
-			}
 		}
 	}
 }
@@ -263,14 +255,7 @@ void MotorSimulacao::executaPassoAPasso(int instrucao)
 		//avanca um determinado numero de passos
 		for(int i=0;i<instrucao;i++)
 		{
-			if(algoritmoSelecionado==TipoAlgoritmo::RATE_MONOTONIC)
-			{
-				Historico historico=passoSimulacao(achaProximaRM());
-			}
-			else if(algoritmoSelecionado==TipoAlgoritmo::EARLIEST_DEADLINE_FIRST)
-			{
-				Historico historico=passoSimulacao(achaProximaEDF());
-			}
+			Historico historico=passoSimulacao(achaProxima(quantCPUs));
 		}
 	}
 	else if(instrucao<0)
@@ -309,4 +294,28 @@ void MotorSimulacao::resetaAPartirDe(int tick)
 
 	//altera o relogio global para o tick
 	tickAtual=tick;
+}
+
+bool MotorSimulacao::comparaEDF(const Tarefa* a, const Tarefa* b)
+{
+	//quem tiver o deadline mais proximo vem primeiro
+	if (a->getProximoDeadline()!=b->getProximoDeadline())
+	{
+		return a->getProximoDeadline()<b->getProximoDeadline();
+	}
+
+	//DESEMPATE TEMPORARIO menor id
+	return a->getId()<b->getId();
+}
+
+bool MotorSimulacao::comparaRM(const Tarefa* a, const Tarefa* b)
+{
+	//quem tiver o periodo mais curto vem primeiro
+	if (a->getPrioridade()!=b->getPrioridade())
+	{
+		return a->getPrioridade()>b->getPrioridade();
+	}
+
+	//DESEMPATE TEMPORARIO menor id
+	return a->getId()<b->getId();
 }
