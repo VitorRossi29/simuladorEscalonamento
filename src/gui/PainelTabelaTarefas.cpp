@@ -30,7 +30,7 @@ PainelTabelaTarefas::PainelTabelaTarefas(std::vector<TarefaGUI>* tarefas,
     m_novaCorBuffer[0] = '\0';
 }
 
-void PainelTabelaTarefas::renderizar()
+bool PainelTabelaTarefas::renderizar()
 {
     ImGui::SetNextWindowSize(ImVec2(600, 200), ImGuiCond_FirstUseEver);
 
@@ -38,7 +38,7 @@ void PainelTabelaTarefas::renderizar()
 	if (!ImGui::Begin("Painel de Tarefas", &estaAberta))
 	{
 		ImGui::End();
-		return;
+		return false;
 	}
 	
     // Busca o snapshot do tick atual de forma segura
@@ -56,24 +56,32 @@ void PainelTabelaTarefas::renderizar()
         }
     }
 
+    bool edicaoTarefa = false;
+    bool novaTarefa = false;
+
     //Se estiver nulo nao vai funcionar
 	if (m_tarefasRef != NULL)
 	{
-		desenharTabela(snapshotAtual);
-		desenharFormularioInsercao();
+		edicaoTarefa = desenharTabela(snapshotAtual);
+        novaTarefa = desenharFormularioInsercao();
 	}
 
 	ImGui::End();
+
+    if (edicaoTarefa || novaTarefa)
+        return true;
+    else
+        return false;
 }
 
-void PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
+bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
 {
     int idParaRemover = -1;
 
-    // 1. Abre a tabela com 8 colunas e bordas estilizadas
+    // Abre a tabela com 8 colunas
     if (ImGui::BeginTable("TabelaTarefasSimulacao", 8, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
     {
-        // 2. Configura os nomes de cada coluna
+        // Configura os nomes de cada coluna
         ImGui::TableSetupColumn("ID");
         ImGui::TableSetupColumn("Cor");
         ImGui::TableSetupColumn("Ingresso");
@@ -83,10 +91,10 @@ void PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
         ImGui::TableSetupColumn("Estado");
         ImGui::TableSetupColumn("Acoes");
 
-        // 3. Renderiza a linha com os títulos das colunas
+        // Renderiza a linha com os títulos das colunas
         ImGui::TableHeadersRow();
 
-        // 4. Percorre o vetor de dados preenchendo as linhas da tabela
+        // Percorre o vetor de dados preenchendo as linhas da tabela
         for (size_t i = 0; i < m_tarefasRef->size(); i++)
         {
             TarefaGUI& tarefa = (*m_tarefasRef)[i];
@@ -104,23 +112,27 @@ void PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
 
             // Coluna 2: Ingresso (Input numérico editável)
             ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-1); // Faz o input ocupar toda a largura da célula
-            ImGui::InputInt("##ingresso", &tarefa.ingresso, 0); // "##" esconde o rótulo do input
+            ImGui::SetNextItemWidth(-1); // Faz o input ocupar toda a largura da celula
+            if (ImGui::InputInt("##ingresso", &tarefa.ingresso, 0)) // "##" esconde o rotulo do input
+                return true;
 
             // Coluna 3: Duração (C)
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1);
-            ImGui::InputInt("##duracao", &tarefa.duracao, 0);
+            if (ImGui::InputInt("##duracao", &tarefa.duracao, 0))
+                return true;
 
             // Coluna 4: Período (T)
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1);
-            ImGui::InputInt("##periodo", &tarefa.periodo, 0);
+            if (ImGui::InputInt("##periodo", &tarefa.periodo, 0))
+                return true;
 
             // Coluna 5: Prazo (D)
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1);
-            ImGui::InputInt("##prazo", &tarefa.prazo, 0);
+            if (ImGui::InputInt("##prazo", &tarefa.prazo, 0))
+                return true;
 
             // Coluna 6: Estado Atual no Tick
             //Busca o estado da tarefa no snapshot do tick atual
@@ -152,7 +164,7 @@ void PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
             ImGui::PopID();
         }
 
-        // 5. Encerra a tabela
+        // Encerra a tabela
         ImGui::EndTable();
     }
 
@@ -169,9 +181,11 @@ void PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
         }
     }
 
+    // Se nao houve alteracao retorna falso
+    return false;
 }
 
-void PainelTabelaTarefas::desenharFormularioInsercao()
+bool PainelTabelaTarefas::desenharFormularioInsercao()
 {
     ImGui::Separator();
 
@@ -213,7 +227,10 @@ void PainelTabelaTarefas::desenharFormularioInsercao()
         tarefaNova.estado = EstadoTarefa::ESPERANDO; // Estado inicial padrao
 
         m_tarefasRef->push_back(tarefaNova);
+
+        return true;
     }
+    return false;
 }
 
 int PainelTabelaTarefas::proximoId()

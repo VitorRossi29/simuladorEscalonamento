@@ -23,7 +23,7 @@ bool PainelConfiguracao::renderizar()
 	if (!ImGui::Begin("Painel de Configuracao", &estaAberta))
 	{
 		ImGui::End();
-		return;
+		return false;
 	}
 
 	static int selecaoFonte = (*m_modoFonte == ModoFonteDados::MOCK) ? 0 : 1;
@@ -69,7 +69,7 @@ bool PainelConfiguracao::renderizar()
 	// Controles diretamente vinculados às variáveis do GerenciadorGUI
 	if (m_qtdeCpus != nullptr)
 	{
-		if (ImGui::SliderInt("Numero de CPUs", m_qtdeCpus, 1, 16, "%d CPUs");)
+		if ( ImGui::SliderInt("Numero de CPUs", m_qtdeCpus, 1, 16, "%d CPUs") )
 		{
 			alterado = true;
 		}
@@ -108,19 +108,28 @@ void PainelConfiguracao::renderizarMetricas(const std::vector<TarefaGUI>& tarefa
 	float tempoOciosoPercentual)
 {
 	float progresso;
+	bool estaAberta = true;
+
+	if (!ImGui::Begin("Painel de Configuracao", &estaAberta))
+	{
+		ImGui::End();
+		return;
+	}
 
 	if (m_qtdeCpus != 0)
 		progresso = (float)utilizacaoCPU / (float) *m_qtdeCpus;
 	else
 		progresso = 0.0f;
 
-	ImGui::ProgressBar(progresso, ImVec2(300, 200));
+	ImGui::ProgressBar(progresso, ImVec2(300, 30));
 
 	if (escalonavel)
 		ImGui::TextColored(ImColor(0, 255, 0, 255), "Sistema escalonavel");
 	else
 		ImGui::TextColored(ImColor(255, 0, 0, 255), "Sistema nao-escalonavel"); 
 
-	ImGui::Text("Total de Prazos Pedidos: %d", totalDeadlinesPerdidos);
+	ImGui::Text("Total de Prazos Perdidos: %d", totalDeadlinesPerdidos);
 	ImGui::Text("Tempo Ocioso Percentual: %f", tempoOciosoPercentual);
+
+	ImGui::End();
 }

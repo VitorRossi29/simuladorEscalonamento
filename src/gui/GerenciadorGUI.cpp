@@ -7,7 +7,7 @@
 #include "../core/MotorSimulacao.hpp"
 #include "../reader/Leitor.hpp"
 
-GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor = nullptr) :
+GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 	m_motor(motor),
 	fonteDados(ModoFonteDados::MOCK),
 
@@ -127,9 +127,22 @@ void GerenciadorGUI::renderizar()
 		if(m_exibirControles)
 			m_painelControles.renderizar();
 
-		if(m_exibirTabela)
-			m_painelTabela.renderizar();
-
+		if (m_exibirTabela)
+		{
+			if (m_painelTabela.renderizar())
+			{
+				if (m_tickAtual == 0)
+				{
+					recalcularSimulacao();
+				}
+				else
+				{
+					atualizarTarefasNaEngine();
+					reescalonarAPartirDoTickAtual();
+				}
+			}
+		}
+			
 		if (m_exibirGantt)
 			m_painelGantt.renderizar();
 
@@ -170,6 +183,7 @@ void GerenciadorGUI::renderizar()
 
 				const auto& historico = m_motor->getHistorico();
 				int totalTicks = static_cast<int>(historico.size());
+				int totalSlotsCPU = 0;
 
 				if (totalTicks > 0)
 				{
@@ -178,19 +192,27 @@ void GerenciadorGUI::renderizar()
 						// Acumula prazos perdidos do tick
 						totalDeadlines += static_cast<int>(historico[i].idDeadlinesPerdidas.size());
 
-						// Conta se a CPU ficou idle no tick (id == -1)
-						if (historico[i].tarefaExecutada.getId() == -1)
+						// Conta slots ociosos e total de slots de CPU no tick
+						for (size_t exe = 0; exe < historico[i].tarefaExecutada.size(); exe++)
 						{
-							ticksOciosos++;
+							totalSlotsCPU++;
+							if (historico[i].tarefaExecutada[exe].getId() == -1)
+							{
+								ticksOciosos++;
+							}
 						}
+						
 					}
 
-					//  Calcula a porcentagem de ociosidade
-					tempoOciosoPercentual = (static_cast<float>(ticksOciosos) / totalTicks) * 100.0f;
+					//  Calcula a porcentagem de ociosidade EM RELACAO AO PODER TOTAL DE TODAS AS CPUS
+					if (totalSlotsCPU > 0)
+					{
+						tempoOciosoPercentual = ( ((float)(ticksOciosos)) / ((float)(totalSlotsCPU)) ) * 100.0f;
+					}
 				}
 			}
-
-			m_painelConfig.renderizarMetricas(m_tarefas, utilizacao, escalonavel, totalDeadlines, tempoOciosoPercentual);
+			if(fonteDados == ModoFonteDados::ENGINE_REAL)
+				m_painelConfig.renderizarMetricas(m_tarefas, utilizacao, escalonavel, totalDeadlines, tempoOciosoPercentual);
 		}
 		
 	}
@@ -248,21 +270,32 @@ void GerenciadorGUI::recalcularSimulacao()
 {
 	if (fonteDados == ModoFonteDados::ENGINE_REAL && m_motor != nullptr)
 	{
+		// Configura o algoritmo
 		if (m_algoritmo == "RM")
 			m_motor->setAlgoritmo(TipoAlgoritmo::RATE_MONOTONIC);
 		else if (m_algoritmo == "EDF")
 			m_motor->setAlgoritmo(TipoAlgoritmo::EARLIEST_DEADLINE_FIRST);
 
 		m_motor->resetSimulacao();
-		m_motor->executaTempoReal();
+
+		if (m_modoExecucao == 1) // Modo Instantâneo Completo
+		{
+			m_motor->executaTempoReal();
+		}
+		else // Modo Passo a Passo
+		{
+			// Processa apenas o primeiro passo para inicializar o tick 0
+			m_motor->executaPassoAPasso(1);
+		}
+
 		sincronizarComEngine();
 	}
-	else if(fonteDados == ModoFonteDados::MOCK)
+	else if (fonteDados == ModoFonteDados::MOCK)
 	{
 		m_tarefas = GeradorMock::criarTarefasIniciais();
-		m_historico = GeradorMock::gerarHistoricoInicial(m_tarefas, m_totalTicks, m_quantidadeCPUs, m_quantum);
+		m_historico = GeradorMock::gerarHistoricoInicial(m_tarefas, 50, m_quantidadeCPUs, m_quantum);
 	}
-	//Ajuste de Limites de tempo
+
 	m_totalTicks = static_cast<int>(m_historico.size());
 }
 
@@ -285,6 +318,10 @@ void GerenciadorGUI::sincronizarComEngine()
 		tGUI.ingresso = tReal.getIngresso();
 		strncpy(tGUI.cor, tReal.getCor().c_str(), sizeof(tGUI.cor) - 1);
 		tGUI.cor[sizeof(tGUI.cor) - 1] = '\0';
+
+		//Falta pegar os eventos mas isso é pra parte 2
+
+		tGUI.prioridade = tReal.getPrioridade();
 		m_tarefas.push_back(tGUI);
 	}
 
@@ -299,12 +336,22 @@ void GerenciadorGUI::sincronizarComEngine()
 		snapGUI.tick = historicoPasso.tempo;
 
 		// VERSAO TEMPORARIA PARA 1 CPU
+		/*
 		if (historicoPasso.tarefaExecutada.getId() != -1)
 		{
 			idsExecutando.push_back(historicoPasso.tarefaExecutada.getId());
 		}
+		*/
 
 		// QUANDO HOUVER N CPUS: ITERAR SOBRE A LISTA DE TAREFAS DA ENGINE E INSERIR TODOS OS IDS VALIDOS EM IDSEXECUTANDO
+
+		for (size_t exe = 0; exe < historicoPasso.tarefaExecutada.size(); exe++)
+		{
+			if (historicoPasso.tarefaExecutada[exe].getId() != -1)
+			{
+				idsExecutando.push_back(historicoPasso.tarefaExecutada[exe].getId());
+			}
+		}
 
 
 		for (size_t s = 0; s < m_motor->getTarefas().size(); s++)
@@ -397,3 +444,55 @@ void GerenciadorGUI::screenShotAvancada()
 
 	m_solicitarExportacao = false;
 }
+
+// Se houve mudança nas tarefas pela GUI ele vai atualizar as tarefas na ENGINE
+void GerenciadorGUI::atualizarTarefasNaEngine()
+{
+	if (m_motor == nullptr)
+	{
+		return;
+	}
+
+	m_motor->limparTarefas();
+
+	for (size_t i = 0; i < m_tarefas.size(); i++)
+	{
+		const TarefaGUI& tGUI = m_tarefas[i];
+		std::string corStringue = tGUI.cor;
+		Tarefa tReal(tGUI.id,
+			tGUI.duracao,
+			tGUI.periodo,
+			tGUI.prazo,
+			tGUI.ingresso,
+			tGUI.prioridade,				// Prioridade estatica (igual a zero)
+			corStringue);
+
+		m_motor->addTarefa(tReal);
+	}
+}
+
+void GerenciadorGUI::reescalonarAPartirDoTickAtual()
+{
+	if (m_motor == nullptr || fonteDados != ModoFonteDados::ENGINE_REAL) 
+		return;
+
+	// Trunca o histórico da Engine do tick atual em diante
+	m_motor->resetaAPartirDe(m_tickAtual);
+
+	// Garante que o algoritmo correto esteja definido
+	if (m_algoritmo == "RM")
+		m_motor->setAlgoritmo(TipoAlgoritmo::RATE_MONOTONIC);
+	else if (m_algoritmo == "EDF")
+		m_motor->setAlgoritmo(TipoAlgoritmo::EARLIEST_DEADLINE_FIRST);
+
+	// Simula o futuro a partir da agulha de tempo atual até o final
+	m_motor->executaTempoReal();
+
+	// Sincroniza o novo histórico com a GUI preservando a posição do tick
+	sincronizarComEngine();
+
+	// IMPORTANTE : REDEFINIR O M_TOTALTICKS
+	m_totalTicks = static_cast<int>(m_historico.size());
+}
+
+

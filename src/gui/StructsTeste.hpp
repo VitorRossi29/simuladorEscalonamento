@@ -50,6 +50,7 @@ typedef struct {
     int prazo;                // Deadline relativo a partir da ativação
     std::string lista_eventos;// Reservado para o Projeto B
     EstadoTarefa estado;
+    short int prioridade;
 } TarefaGUI;
 
 

@@ -54,6 +54,7 @@ private:
 	// Traduz os dados da Engine para as structs da GUI
 	void sincronizarComEngine();
 
+	void atualizarTarefasNaEngine();
 public:
 	GerenciadorGUI(MotorSimulacao* motor = nullptr);
 
@@ -73,5 +74,8 @@ public:
 
 	void screenShotAvancada();
 
-	double getUtilizacaoCPU();
+	void reescalonarAPartirDoTickAtual();
+
+	//Passa as tarefas editadas na GUI para o m_motor antes de recalcular
+	
 };

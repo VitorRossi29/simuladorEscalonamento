@@ -30,17 +30,19 @@ public:
 		const int* tickAtual = 0);
 
 	//Executa o desenho da janela sem receber parametros na chamada do laco
-	void renderizar();
+	bool renderizar();
 
 private:
 	//renderiza a tabela, snapshot encontrado eh passado para a funcao
-	void desenharTabela(const SnapshotTick* snapshotAtual);
+	bool desenharTabela(const SnapshotTick* snapshotAtual);
 
 	//renderiza os campos de entrada e o botão para adicionar tarefas
-	void desenharFormularioInsercao();
+	bool desenharFormularioInsercao();
 
 	//restaura os atributos do formulario para valores padrao apos uma insercao com sucesso
 	void resetarFormulario();
 
 	int proximoId();
+
+
 };

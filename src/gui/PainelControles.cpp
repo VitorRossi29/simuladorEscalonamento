@@ -71,7 +71,7 @@ void PainelControles::renderizar()
 
 	if (ImGui::Button ("Avancar (+1)"))
 	{
-		if(*m_tickAtualRef < *m_totalTicksRef - 1)
+		if (*m_tickAtualRef < *m_totalTicksRef - 1)
 			*m_tickAtualRef += 1;
 	}
 	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && *m_emExecucaoAutoRef)
