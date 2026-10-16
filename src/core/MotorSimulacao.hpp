@@ -2,6 +2,7 @@
 #include <vector>
 #include "Tarefa.hpp"
 #include "Metricas.hpp"
+#include "CPU.hpp"
 #include <cmath>
 
 struct MotorSimulacao
@@ -14,6 +15,8 @@ private:
 	TipoAlgoritmo algoritmoSelecionado;
 	std::vector<Tarefa> tarefas;
 	std::vector<Historico> historicoTimeline;
+	std::vector<CPU> todasCPUs;
+	int quantCPUs;
 
 	enum class EstadoSimulacao
 	{
@@ -24,12 +27,18 @@ private:
 	};
 
 public:
+	MotorSimulacao()
+	{
+		resetSimulacao();
+	}
 	void addTarefa(const Tarefa& tarefa);
 	void resetSimulacao();
 
-	Tarefa* achaProximaRM();
-	Tarefa* achaProximaEDF();
-	Historico passoSimulacao(Tarefa* tarefaMaiorPrioridade);
+	std::vector<Tarefa*> achaProxima(int quantCPUs);
+	bool comparaRM(const Tarefa* a, const Tarefa* b); //ordena as tarefas mais prioritarias por menor periodo e trata desempates
+	bool comparaEDF(const Tarefa* a, const Tarefa* b); //ordena as tarefas mais prioritarias por menor deadline e trata desempates
+
+	Historico passoSimulacao(std::vector<Tarefa*> tarefasMaiorPrioridade);
 	void preparaSimulacaoRM();
 
 	double calculaUtilizacaoCPU();
