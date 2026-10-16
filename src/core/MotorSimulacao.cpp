@@ -1,5 +1,6 @@
 #include "MotorSimulacao.hpp"
 #include <algorithm>
+#include <random>
 
 //coloca a tarefa no vetor de tarefas
 void MotorSimulacao::addTarefa(const Tarefa& tarefa)
@@ -304,18 +305,67 @@ bool MotorSimulacao::comparaEDF(const Tarefa* a, const Tarefa* b)
 		return a->getProximoDeadline()<b->getProximoDeadline();
 	}
 
-	//DESEMPATE TEMPORARIO menor id
-	return a->getId()<b->getId();
+	//desempate
+	return desempate(a, b)==a;
 }
 
 bool MotorSimulacao::comparaRM(const Tarefa* a, const Tarefa* b)
 {
-	//quem tiver o periodo mais curto vem primeiro
+	//quem tiver o periodo mais curto vem primeiro (prioridade ja depende do periodo no RM)
 	if (a->getPrioridade()!=b->getPrioridade())
 	{
 		return a->getPrioridade()>b->getPrioridade();
 	}
 
-	//DESEMPATE TEMPORARIO menor id
-	return a->getId()<b->getId();
+	//desempate
+	return desempate(a, b);
+}
+//sort precisa de uma funcao que diz se a deve vir antes de b, logo
+bool MotorSimulacao::desempate(const Tarefa* a, const Tarefa* b)
+{
+	//condicao 1 evita preemptar mantendo a tarefa que ja esta executando
+	if(a->getEstado()==EstadoTarefa::EXECUTANDO && b->getEstado()!=EstadoTarefa::EXECUTANDO)
+		return true;
+	else if(b->getEstado()==EstadoTarefa::EXECUTANDO && a->getEstado()!=EstadoTarefa::EXECUTANDO)
+		return false;
+
+	//condicao 2 tarefa com o menor prazo
+	if (a->getPrazo()!=b->getPrazo())
+	{
+		if(a->getPrazo()<b->getPrazo())
+			return true;
+		else
+			return false;
+	}
+
+	//condicao 3 tarefa com o menor ingresso
+	if (a->getIngresso()!=b->getIngresso())
+	{
+		if(a->getIngresso()<b->getIngresso())
+			return true;
+		else
+			return false;
+	}
+
+	//condicao 4 tarefa com a menor duracao
+	if (a->getDuracao()!=b->getDuracao())
+	{
+		if(a->getDuracao()<b->getDuracao())
+			return true;
+		else
+			return false;
+	}
+
+	//condicao 5 aleatorio, precisa ter elemento grafico
+	std::random_device rd; //gera uma semente utilizando o proprio hardware do sistema
+	std::mt19937 gen(rd()); //inicializa o motor com a semente criada
+
+	std::uniform_real_distribution<int> dis(0, 1); //estabelece as possibilidades como 0 ou 1
+
+	int escolha=dis(gen); //gera o numero
+
+	if(escolha) //==1
+		return true;
+	else //==0
+		return false;
 }
