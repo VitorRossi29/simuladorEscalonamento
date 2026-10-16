@@ -199,7 +199,7 @@ bool MotorSimulacao::verificaEscalabilidade()
 	}
 }
 
-//utiliza a fÃ³rmula do Maziero
+//utiliza a fórmula do Maziero
 bool MotorSimulacao::escalabilidadeRM()
 {
 	int n=tarefas.size();
@@ -262,14 +262,6 @@ void MotorSimulacao::executaPassoAPasso(int instrucao)
 	else if(instrucao<0)
 	{
 		//retrocede um determinado numero de passos
-		int tickAlvo=tickAtual+instrucao;
-
-		if(tickAlvo<0)
-		{
-			tickAlvo=0;
-		}
-
-		resetaAPartirDe(tickAlvo);
 	}
 }
 
@@ -306,7 +298,7 @@ bool MotorSimulacao::comparaEDF(const Tarefa* a, const Tarefa* b)
 	}
 
 	//desempate
-	return desempate(a, b)==a;
+	return desempate(a, b);
 }
 
 bool MotorSimulacao::comparaRM(const Tarefa* a, const Tarefa* b)
@@ -320,7 +312,9 @@ bool MotorSimulacao::comparaRM(const Tarefa* a, const Tarefa* b)
 	//desempate
 	return desempate(a, b);
 }
-//sort precisa de uma funcao que diz se a deve vir antes de b, logo
+
+//sort precisa de uma funcao que diz se a deve vir antes de b
+//logo se a eh escolhida retorna true, se b retorna false
 bool MotorSimulacao::desempate(const Tarefa* a, const Tarefa* b)
 {
 	//condicao 1 evita preemptar mantendo a tarefa que ja esta executando
