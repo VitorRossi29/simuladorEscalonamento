@@ -29,6 +29,7 @@ private:
 public:
 	MotorSimulacao()
 	{
+		quantCPUs=1;
 		resetSimulacao();
 	}
 	void addTarefa(const Tarefa& tarefa);

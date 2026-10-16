@@ -354,7 +354,7 @@ bool MotorSimulacao::desempate(const Tarefa* a, const Tarefa* b)
 	std::random_device rd; //gera uma semente utilizando o proprio hardware do sistema
 	std::mt19937 gen(rd()); //inicializa o motor com a semente criada
 
-	std::uniform_real_distribution<int> dis(0, 1); //estabelece as possibilidades como 0 ou 1
+	std::uniform_int_distribution<int> dis(0, 1); //estabelece as possibilidades como 0 ou 1
 
 	int escolha=dis(gen); //gera o numero
 

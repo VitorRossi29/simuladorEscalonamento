@@ -193,10 +193,10 @@ void GerenciadorGUI::renderizar()
 						totalDeadlines += static_cast<int>(historico[i].idDeadlinesPerdidas.size());
 
 						// Conta slots ociosos e total de slots de CPU no tick
-						for (size_t exe = 0; exe < historico[i].tarefaExecutada.size(); exe++)
+						for (size_t exe = 0; exe < historico[i].tarefasExecutadas.size(); exe++)
 						{
 							totalSlotsCPU++;
-							if (historico[i].tarefaExecutada[exe].getId() == -1)
+							if (historico[i].tarefasExecutadas[exe].getId() == -1)
 							{
 								ticksOciosos++;
 							}
@@ -345,11 +345,11 @@ void GerenciadorGUI::sincronizarComEngine()
 
 		// QUANDO HOUVER N CPUS: ITERAR SOBRE A LISTA DE TAREFAS DA ENGINE E INSERIR TODOS OS IDS VALIDOS EM IDSEXECUTANDO
 
-		for (size_t exe = 0; exe < historicoPasso.tarefaExecutada.size(); exe++)
+		for (size_t exe = 0; exe < historicoPasso.tarefasExecutadas.size(); exe++)
 		{
-			if (historicoPasso.tarefaExecutada[exe].getId() != -1)
+			if (historicoPasso.tarefasExecutadas[exe].getId() != -1)
 			{
-				idsExecutando.push_back(historicoPasso.tarefaExecutada[exe].getId());
+				idsExecutando.push_back(historicoPasso.tarefasExecutadas[exe].getId());
 			}
 		}
 
