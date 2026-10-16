@@ -450,3 +450,6 @@ CMakeSettings.json
 *.o
 *.lib
 *.a
+
+#Adicao, imagem gerada do escalonamento
+*.png

@@ -14,7 +14,8 @@ enum class EstadoTarefa
 enum class TipoAlgoritmo
 {
     RATE_MONOTONIC,
-    EARLIEST_DEADLINE_FIRST
+    EARLIEST_DEADLINE_FIRST,
+	OUTRO
 };
 
 struct SnapshotTarefas
@@ -26,6 +27,7 @@ struct SnapshotTarefas
 	int tempoEspera;
 	EstadoTarefa estado;
 	int quantidadeExecucoes;
+	int ultimaCPUExecutada; //id da ultima CPU pra ver se foi preemptada 
 };
 
 class Tarefa
@@ -69,8 +71,10 @@ public:
 	int getQuantidadeExecucoes() const { return snapshot.quantidadeExecucoes; }
 	EstadoTarefa getEstado() const { return snapshot.estado; }
 	SnapshotTarefas getSnapshot() const { return snapshot; }
+
 	const std::string& getCor() const { return cor; }
 	void setCor(const std::string& novaCor) { cor=novaCor; }
+
 	void setEstado(EstadoTarefa estado) { snapshot.estado=estado; }
 };
 

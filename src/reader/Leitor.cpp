@@ -33,12 +33,12 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
     {
         std::stringstream ss(linha);
         std::string campo;
+        std::getline(ss, campo, ';');
 
         //converte tudas as letras para maiusculo
         campo=paraMaiusculo(campo);
 
         //algoritmo
-        std::getline(ss, campo, ';');
         if (campo=="RM")
         {
             configuracao.algoritmo=TipoAlgoritmo::RATE_MONOTONIC;

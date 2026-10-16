@@ -198,7 +198,7 @@ bool MotorSimulacao::verificaEscalabilidade()
 	}
 }
 
-//utiliza a fórmula do Maziero
+//utiliza a fÃ³rmula do Maziero
 bool MotorSimulacao::escalabilidadeRM()
 {
 	int n=tarefas.size();
@@ -261,6 +261,14 @@ void MotorSimulacao::executaPassoAPasso(int instrucao)
 	else if(instrucao<0)
 	{
 		//retrocede um determinado numero de passos
+		int tickAlvo=tickAtual+instrucao;
+
+		if(tickAlvo<0)
+		{
+			tickAlvo=0;
+		}
+
+		resetaAPartirDe(tickAlvo);
 	}
 }
 
