@@ -59,4 +59,5 @@ public:
 
 	void setAlgoritmo(TipoAlgoritmo algo) { algoritmoSelecionado=algo; }
 	void limparTarefas() { tarefas.clear(); resetSimulacao(); }
+	bool desempate(const Tarefa* a, const Tarefa* b);
 };
