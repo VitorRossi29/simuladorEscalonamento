@@ -75,28 +75,24 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		for (int i=0;i<quantCPUs;i++)
 		{
 			todasCPUs[i].setTarefaAtual(nullptr); //indica que nenhuma tarefa esta sendo executada na CPU
-			todasCPUs[i].atualizaEstado(); //muda para OCIOSA e incrementa tempo ociosa
+			todasCPUs[i].atualizaEstado(); //muda para DESLIGADA e incrementa tempo desligada
 		}
 
 		//cria uma tarefa com a construtora sem parametro para indicar que nenhuma tarefa foi executada nesse tick
 		historicoAtual.tarefasExecutadas.push_back(Tarefa());
 	}
 	else
-	{
-		//armazena a tarefa depois de decrementar o tempo restante
-		for (Tarefa* t:tarefasMaiorPrioridade)
-		{
-			t->setEstado(EstadoTarefa::EXECUTANDO);
-			(*t)--; //Decrementa o tempo restante
-			historicoAtual.tarefasExecutadas.push_back(*t); //tarefas que serao executadas nesse tick
-		}
-		
-		//atribui as tarefas para as CPUs, ve se foram preemptadas e incrementa tempo ocioso
+	{	
+		//atribui as tarefas para as CPUs, ve se foram preemptadas e incrementa tempo desligada
 		for(int i=0;i<quantCPUs;i++)
 		{
 			if (i<tarefasMaiorPrioridade.size())
 			{
-				todasCPUs[i].setTarefaAtual(tarefasMaiorPrioridade[i]); //atribui as tarefas
+				todasCPUs[i].setTarefaAtual(tarefasMaiorPrioridade[i]); //atribui a tarefa
+				todasCPUs[i].getTarefaAtual()->setEstado(EstadoTarefa::EXECUTANDO); //muda o estado da tarefa para EXECUTANDO
+				(*todasCPUs[i].getTarefaAtual())--; //decrementa o tempo restante da tarefa
+
+				historicoAtual.tarefasExecutadas.push_back(*todasCPUs[i].getTarefaAtual()); //armazena a tarefa no historico
 
 				if (todasCPUs[i].getTarefaAnterior()!=nullptr && //tarefa anterior nao nula
 					todasCPUs[i].getTarefaAtual()!=todasCPUs[i].getTarefaAnterior() && //tarefa atual diferente da anterior
@@ -106,12 +102,13 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 				}
 			}
 			
+			//tem mais CPUs que tarefas
 			else
 			{ 
 				todasCPUs[i].setTarefaAtual(nullptr);
 			}
 
-			todasCPUs[i].atualizaEstado(); //muda para EXECUTANDO ou OCIOSA e incrementa tempo ociosa se preciso
+			todasCPUs[i].atualizaEstado(); //muda para EXECUTANDO ou DESLIGADA e incrementa tempo desligada se preciso
 		}
 
 		for(Tarefa& tarefa:tarefas)
@@ -155,7 +152,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 	return historicoAtual;
 }
 
-//Atribui as prioridades estaticas para as tarefas
+//atribui as prioridades estaticas para as tarefas
 void MotorSimulacao::preparaSimulacaoRM()
 {
 	//ordena as tarefas do menor pro maior periodo
@@ -199,7 +196,7 @@ bool MotorSimulacao::verificaEscalabilidade()
 	}
 }
 
-//utiliza a fórmula do Maziero
+//utiliza a formula do Maziero
 bool MotorSimulacao::escalabilidadeRM()
 {
 	int n=tarefas.size();
@@ -242,7 +239,7 @@ void MotorSimulacao::executaTempoReal()
 				break;
 			}
 		}
-		if(getTickAtual()>1000)
+		if(getTickAtual()>1000) //interrompe se demorar demais
 		{
 			executando=false;
 		}
@@ -273,8 +270,8 @@ void MotorSimulacao::resetaAPartirDe(int tick)
 		resetSimulacao();
 		return;
 	}
-	//Tick fora do limite atual
-	if(tick>=static_cast<int>(historicoTimeline.size()))
+	//tick fora do limite atual
+	if(tick>=historicoTimeline.size())
 	{
 		return;
 	}

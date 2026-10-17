@@ -4,7 +4,7 @@
 enum class estadoCPU
 {
 	EXECUTANDO,
-	OCIOSA
+	DESLIGADA
 };
 
 static int idCPUGlobal=1;
@@ -14,13 +14,13 @@ class CPU
 private:
 	int idCPU;
 
-	int tempoOciosa;
+	int tempoDesligada;
 	estadoCPU estado;
 	Tarefa* tarefaAtual;
 	Tarefa* tarefaAnterior;
 
 public:
-	CPU():idCPU(idCPUGlobal++), tempoOciosa(0), tarefaAtual(nullptr), tarefaAnterior(nullptr) {}
+	CPU():idCPU(idCPUGlobal++), tempoDesligada(0), tarefaAtual(nullptr), tarefaAnterior(nullptr) {}
 	int getId() const { return idCPU; }
 	Tarefa* getTarefaAtual() const { return tarefaAtual; }
 	Tarefa* getTarefaAnterior() const { return tarefaAnterior; }
@@ -29,8 +29,8 @@ public:
 	{ 
 		if (tarefaAtual==nullptr)
 		{
-			estado=estadoCPU::OCIOSA;
-			tempoOciosa++;
+			estado=estadoCPU::DESLIGADA;
+			tempoDesligada++;
 		}
 		else
 			estado=estadoCPU::EXECUTANDO;
