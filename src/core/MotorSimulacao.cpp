@@ -15,7 +15,10 @@ void MotorSimulacao::resetSimulacao()
 	historicoTimeline.clear();
 
 	//cria as CPUs de acordo com a quantidade estabelecida 
-	todasCPUs.assign(quantCPUs, CPU());
+	for(int i=0;i<quantCPUs;i++)
+	{
+		todasCPUs.push_back(CPU(i+1));
+	}
 
 	for(Tarefa& tarefa:tarefas)
 	{
@@ -67,6 +70,28 @@ std::vector<Tarefa*> MotorSimulacao::achaProxima(int quantCPUs)
 Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPrioridade)
 {
 	Historico historicoAtual;
+	bool numIgual=true;
+
+	for(Tarefa& t:tarefas) 
+	{
+		t.geraNumeroAleatorio();
+	}
+
+	while(numIgual)
+	{
+		numIgual=false;
+		for(Tarefa& t:tarefas) 
+		{
+			for(Tarefa& t2:tarefas)
+			{
+				if(&t!=&t2 && t.getNumAleatorio()==t2.getNumAleatorio()) //duas tarefas diferentes com num igual
+				{
+					t2.geraNumeroAleatorio();
+					numIgual=true;
+				}
+			}
+		}
+	}
 
 	//nenhuma tarefa pronta para executar
 	if(tarefasMaiorPrioridade.empty())
@@ -86,7 +111,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		//atribui as tarefas para as CPUs, ve se foram preemptadas e incrementa tempo desligada
 		for(int i=0;i<quantCPUs;i++)
 		{
-			if (i<tarefasMaiorPrioridade.size())
+			if(i<tarefasMaiorPrioridade.size())
 			{
 				todasCPUs[i].setTarefaAtual(tarefasMaiorPrioridade[i]); //atribui a tarefa
 				todasCPUs[i].getTarefaAtual()->setEstado(EstadoTarefa::EXECUTANDO); //muda o estado da tarefa para EXECUTANDO
@@ -94,7 +119,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 
 				historicoAtual.tarefasExecutadas.push_back(*todasCPUs[i].getTarefaAtual()); //armazena a tarefa no historico
 
-				if (todasCPUs[i].getTarefaAnterior()!=nullptr && //tarefa anterior nao nula
+				if(todasCPUs[i].getTarefaAnterior()!=nullptr && //tarefa anterior nao nula
 					todasCPUs[i].getTarefaAtual()!=todasCPUs[i].getTarefaAnterior() && //tarefa atual diferente da anterior
 					todasCPUs[i].getTarefaAnterior()->getTempoRestante()>0) //tarefa anterior ainda nao terminou
 				{
@@ -106,6 +131,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 			else
 			{ 
 				todasCPUs[i].setTarefaAtual(nullptr);
+				historicoAtual.tarefasExecutadas.push_back(Tarefa()); //coloca tarefa vazia
 			}
 
 			todasCPUs[i].atualizaEstado(); //muda para EXECUTANDO ou DESLIGADA e incrementa tempo desligada se preciso
@@ -114,7 +140,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		for(Tarefa& tarefa:tarefas)
 		{
 			//verifica deadlines perdidas
-			if (tarefa.getProximoDeadline()==tickAtual && tarefa.getTempoRestante()>0)
+			if(tarefa.getProximoDeadline()==tickAtual && tarefa.getTempoRestante()>0)
 			{
 				tarefa.setEstado(EstadoTarefa::DEADLINE_PERDIDA);
 				historicoAtual.idDeadlinesPerdidas.push_back(tarefa.getId());
@@ -125,18 +151,17 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 			{
 				if(tarefa.getQuantidadeExecucoes()<10)
 				{
-					tarefa++;
-					tarefa.resetaTarefa();
+					tarefa++; //incrementa quantidade de execucoes
+					tarefa.preparaProximaExecucao();
 				}
 				else
 					tarefa.setEstado(EstadoTarefa::TERMINADA);
 			}
-			//incrementa o tempo de espera da tarefa
 			//find procura a tarefa no vetor, se nao achar retorna o final do vetor, se achar retorna o ponteiro para a tarefa
 			else if(tarefa.getEstado()==EstadoTarefa::PRONTA &&
 				std::find(tarefasMaiorPrioridade.begin(), tarefasMaiorPrioridade.end(), &tarefa)==tarefasMaiorPrioridade.end())
 			{
-				tarefa+=1;
+				tarefa+=1; //incrementa o tempo de espera da tarefa
 			}
 		}
 	}
@@ -171,7 +196,7 @@ double MotorSimulacao::calculaUtilizacaoCPU()
 {
 	double utilizacao=0.0;
 
-	for (const Tarefa& tarefa:tarefas)
+	for(const Tarefa& tarefa:tarefas)
 	{
 		utilizacao+=static_cast<double>(tarefa.getDuracao())/tarefa.getPeriodo();
 	}
@@ -191,7 +216,7 @@ bool MotorSimulacao::verificaEscalabilidade()
 	if(algoritmoSelecionado==TipoAlgoritmo::RATE_MONOTONIC)
 	{
 		//para mais que uma CPU, nao se aplica a formula de Liu & Layland
-		if (quantCPUs>1)
+		if(quantCPUs>1)
 		{
 			return utilizacao<=static_cast<double>(quantCPUs);
 		}
@@ -227,9 +252,9 @@ void MotorSimulacao::executaTempoReal()
 		Historico historico=passoSimulacao(achaProxima(quantCPUs));
 		//verifica se todas as tarefas terminaram
 		executando=false;
-		for (const Tarefa& tarefa:tarefas)
+		for(const Tarefa& tarefa:tarefas)
 		{
-			if (tarefa.getEstado()!=EstadoTarefa::TERMINADA)
+			if(tarefa.getEstado()!=EstadoTarefa::TERMINADA)
 			{
 				executando=true;
 				break;
@@ -285,7 +310,7 @@ void MotorSimulacao::resetaAPartirDe(int tick)
 bool MotorSimulacao::comparaEDF(const Tarefa* a, const Tarefa* b)
 {
 	//quem tiver o deadline mais proximo vem primeiro
-	if (a->getProximoDeadline()!=b->getProximoDeadline())
+	if(a->getProximoDeadline()!=b->getProximoDeadline())
 	{
 		return a->getProximoDeadline()<b->getProximoDeadline();
 	}
@@ -297,7 +322,7 @@ bool MotorSimulacao::comparaEDF(const Tarefa* a, const Tarefa* b)
 bool MotorSimulacao::comparaRM(const Tarefa* a, const Tarefa* b)
 {
 	//quem tiver o periodo mais curto vem primeiro (prioridade ja depende do periodo no RM)
-	if (a->getPrioridade()!=b->getPrioridade())
+	if(a->getPrioridade()!=b->getPrioridade())
 	{
 		return a->getPrioridade()>b->getPrioridade();
 	}
@@ -317,7 +342,7 @@ bool MotorSimulacao::desempate(const Tarefa* a, const Tarefa* b)
 		return false;
 
 	//condicao 2 tarefa com o menor prazo
-	if (a->getPrazo()!=b->getPrazo())
+	if(a->getPrazo()!=b->getPrazo())
 	{
 		if(a->getPrazo()<b->getPrazo())
 			return true;
@@ -326,7 +351,7 @@ bool MotorSimulacao::desempate(const Tarefa* a, const Tarefa* b)
 	}
 
 	//condicao 3 tarefa com o menor ingresso
-	if (a->getIngresso()!=b->getIngresso())
+	if(a->getIngresso()!=b->getIngresso())
 	{
 		if(a->getIngresso()<b->getIngresso())
 			return true;
@@ -335,7 +360,7 @@ bool MotorSimulacao::desempate(const Tarefa* a, const Tarefa* b)
 	}
 
 	//condicao 4 tarefa com a menor duracao
-	if (a->getDuracao()!=b->getDuracao())
+	if(a->getDuracao()!=b->getDuracao())
 	{
 		if(a->getDuracao()<b->getDuracao())
 			return true;
@@ -344,15 +369,8 @@ bool MotorSimulacao::desempate(const Tarefa* a, const Tarefa* b)
 	}
 
 	//condicao 5 aleatorio, precisa ter elemento grafico
-	std::random_device rd; //gera uma semente utilizando o proprio hardware do sistema
-	std::mt19937 gen(rd()); //inicializa o motor com a semente criada
-
-	std::uniform_int_distribution<int> dis(0, 1); //estabelece as possibilidades como 0 ou 1
-
-	int escolha=dis(gen); //gera o numero
-
-	if(escolha) //==1
+	if(a->getNumAleatorio()>b->getNumAleatorio())
 		return true;
-	else //==0
+	else
 		return false;
 }
