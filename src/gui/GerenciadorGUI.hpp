@@ -57,6 +57,8 @@ private:
 	void sincronizarComEngine();
 
 	void atualizarTarefasNaEngine();
+
+	void customizarEstilo();
 public:
 	GerenciadorGUI(MotorSimulacao* motor = nullptr);
 

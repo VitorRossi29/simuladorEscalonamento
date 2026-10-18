@@ -18,7 +18,7 @@ enum class TipoAlgoritmo
 	OUTRO
 };
 
-struct SnapshotTarefas
+struct SnapshotTarefaMotor
 {
 	int tempoRestante;
 	int proximoDeadline;
@@ -44,7 +44,7 @@ private:
 	int numAleatorio=0;
 
     //dinamicos
-	SnapshotTarefas snapshot;
+	SnapshotTarefaMotor snapshot;
 
 public:
     Tarefa();
@@ -75,7 +75,7 @@ public:
 	int getTempoEspera() const { return snapshot.tempoEspera; }
 	int getQuantidadeExecucoes() const { return snapshot.quantidadeExecucoes; }
 	EstadoTarefa getEstado() const { return snapshot.estado; }
-	SnapshotTarefas getSnapshot() const { return snapshot; }
+	SnapshotTarefaMotor getSnapshot() const { return snapshot; }
 	const std::string& getCor() const { return cor; }
 	void setCor(const std::string& novaCor) { cor=novaCor; }
 	void setEstado(EstadoTarefa estado) { snapshot.estado=estado; }

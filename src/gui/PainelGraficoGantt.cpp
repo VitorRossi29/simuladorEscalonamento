@@ -1,8 +1,4 @@
 #include "PainelGraficoGantt.hpp"
-#include "PainelGraficoGantt.hpp"
-#include "PainelGraficoGantt.hpp"
-#include "PainelGraficoGantt.hpp"
-
 #include <algorithm>
 #include <string>
 #include "PainelTabelaTarefas.hpp"
@@ -143,7 +139,7 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
             // Encontra o estado da tarefa no Snapshot para conseguir definir que tipo de preenchimento vai ter
             const SnapshotTick& snap = (*m_historicoRef)[t];
             
-            const SnapshotTarefa* snapCerto = nullptr;
+            const SnapshotTarefaGUI* snapCerto = nullptr;
             for (size_t j = 0; j < snap.tarefas.size(); j++)
             {
                 if (snap.tarefas[j].idTarefa == tarefasOrdenadas[i].id)
@@ -171,7 +167,7 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
             }
             else if (snapCerto->estado == EstadoTarefa::PRONTA)
             {
-                //Desenho apenas da borda
+                //Desenho apenas da borda (ausencia de cor)
                 listaDesenhos->AddRect(posicaoMin, posicaoMax, IM_COL32(100, 100, 100, 100));
             }
             else if (snapCerto->estado == EstadoTarefa::ESPERANDO)
@@ -201,6 +197,13 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
                 //Remocao da mascara de corte
                 listaDesenhos->PopClipRect();
                 listaDesenhos->AddRect(posicaoMin, posicaoMax, IM_COL32(100, 100, 100, 255));
+            }
+            else if (snapCerto->estado == EstadoTarefa::TERMINADA)
+            {
+                // Preenchimento cinza-escuro sólido e liso (sem hachuras)
+                listaDesenhos->AddRectFilled(posicaoMin, posicaoMax, IM_COL32(45, 45, 45, 255));
+                // Borda cinza bem fina/discreta
+                listaDesenhos->AddRect(posicaoMin, posicaoMax, IM_COL32(70, 70, 70, 150));
             }
             else
             {
@@ -316,7 +319,7 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
 
             if (linhaIndex == -1) continue; // Tarefa nao encontrada no vetor
 
-            // Calcul oda posicao X e Y da celula da tarefa no tick t
+            // Calculo da posicao X e Y da celula da tarefa no tick t
             float xMin = inicio.x + m_margemEsquerda + (t * m_larguraTick);
             float yMin = inicio.y + m_margemTopo + (linhaIndex * m_alturaLinha);
 
@@ -325,18 +328,19 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
 
             if (eventoDaVez.tipo == TipoEvento::INGRESSO)
             {
-                // Calcular o centro e as dimensões do pequeno triângulo
+                int tamanhoTriangulo = 16;
+                // Calcular o centro e as dimensões do pequeno triangulo
                 float xMid = xMin + (m_larguraTick / 2.0f);
-                float yApex = yMin + 8.0f; // Ápice no topo da célula
+                float yTopo = yMin + tamanhoTriangulo; // Altura maior no meio da celula
                 float yBase = yMin; // Base 8 pixels abaixo
 
-                // Criar um pequeno triângulo centralizado
-                ImVec2 pApex(xMid, yApex);
-                ImVec2 pBaseR(xMid + 8, yBase);
-                ImVec2 pBaseL(xMid - 8, yBase);
+                // Definicao das pontas do triangulo
+                ImVec2 pTopo(xMid, yTopo);
+                ImVec2 pBaseR(xMid + tamanhoTriangulo, yBase);
+                ImVec2 pBaseL(xMid - tamanhoTriangulo, yBase);
 
-                // O ImGui não exige ordem específica, mas esta é a ordem correta para a lógica.
-                listaDesenhos->AddTriangleFilled(pApex, pBaseL, pBaseR, IM_COL32(0, 255, 0, 255));
+                // Desenha o triangulo verde apontando para baixo
+                listaDesenhos->AddTriangleFilled(pTopo, pBaseL, pBaseR, IM_COL32(0, 255, 0, 255));
             }
             if (eventoDaVez.tipo == TipoEvento::DEADLINE_STOURO)
             {
@@ -350,6 +354,22 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
                 ImVec2 centro(pMin.x + (m_larguraTick / 2.0f), pMin.y + (m_alturaLinha / 2.0f));
                 listaDesenhos->AddCircleFilled(centro, 4.0f, IM_COL32(255, 215, 0, 255));
             }
+            if (eventoDaVez.tipo == TipoEvento::CONCLUSAO)
+            {
+                int tamanhoTriangulo = 16;
+                // Calcular o centro e as dimensões do pequeno triangulo
+                float xMid = xMin + (m_larguraTick / 2.0f);
+                float yTopo = yMin - tamanhoTriangulo; // Ao contrario para o triangulo apontar para cima
+                float yBase = yMin; // Base 8 pixels abaixo
+
+                // Definicao das pontas do triangulo
+                ImVec2 pTopo(xMid, yTopo);
+                ImVec2 pBaseR(xMid + tamanhoTriangulo, yBase);
+                ImVec2 pBaseL(xMid - tamanhoTriangulo, yBase);
+
+                // Desenha o triangulo azul apontando para cima
+                listaDesenhos->AddTriangleFilled(pTopo, pBaseL, pBaseR, IM_COL32(0, 0, 255, 255));
+            }
         }
 
     }
@@ -362,10 +382,10 @@ PainelGraficoGantt::PainelGraficoGantt(const std::vector<TarefaGUI>* tarefas, co
     m_historicoRef(historico),
     m_tickAtualRef(tickAtual),
     m_qtdeCpusRef(qtdeCpus),
-    m_larguraTick(100.0f),
-    m_alturaLinha(70.0f),
-    m_margemEsquerda(100.0f),
-    m_margemTopo(100.0f),
+    m_larguraTick(70.0f),
+    m_alturaLinha(40.0f),
+    m_margemEsquerda(70.0f),
+    m_margemTopo(70.0f),
     m_modoExecucao(modoExecucao)
 {
 
@@ -403,7 +423,7 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
     float origemX = 0.0f;
     float origemY = 0.0f;
 
-    // 1. Régua X e Linhas Verticais
+    // Régua X e Linhas Verticais
     for (int t = 0; t < totalTicks; t++)
     {
         float x = origemX + m_margemEsquerda + (t * m_larguraTick);
@@ -414,7 +434,7 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
         DrawLineEx(Vector2{ x, yTop }, Vector2{ x, yBottom }, 1.0f, LIGHTGRAY);
     }
 
-    // 2. Eixo Y e Linhas Horizontais
+    // Eixo Y e Linhas Horizontais
     for (size_t i = 0; i < t_Ord.size(); i++)
     {
         float y = origemY + m_margemTopo + (i * m_alturaLinha);
@@ -444,7 +464,7 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
     }
     
 
-    // 3. Blocos de Execução e Hachura
+    // Blocos de Execução e Hachura
     for (int t = 0; t < limite; t++)
     {
         const SnapshotTick& snap = (*m_historicoRef)[t];
@@ -454,7 +474,7 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
             float x = origemX + m_margemEsquerda + (t * m_larguraTick);
             float y = origemY + m_margemTopo + (i * m_alturaLinha);
 
-            const SnapshotTarefa* snapCerto = nullptr;
+            const SnapshotTarefaGUI* snapCerto = nullptr;
             for (size_t j = 0; j < snap.tarefas.size(); j++)
             {
                 if (snap.tarefas[j].idTarefa == t_Ord[i].id)
@@ -492,10 +512,16 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
 
                 DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), GRAY);
             }
+            else if (snapCerto->estado == EstadoTarefa::TERMINADA)
+            {
+                Color cinzaEscuro = Color{ 45, 45, 45, 255 };
+                DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), cinzaEscuro);
+                DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), DARKGRAY);
+            }
         }
     }
 
-    // 4. Desenho dos Eventos
+    // Desenho dos Eventos
     for (int t = 0; t < limite; t++)
     {
         const SnapshotTick& snap = (*m_historicoRef)[t];
@@ -542,6 +568,14 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
                 Vector2 centro{ x + (m_larguraTick / 2.0f), y + (m_alturaLinha / 2.0f) };
                 DrawCircleV(centro, 4.0f, GOLD);
             }
+            else if (ev.tipo == TipoEvento::CONCLUSAO)
+            {
+                Vector2 p1{ x, y };
+                Vector2 p2{ x + m_larguraTick, y };
+                Vector2 p3{ x + (m_larguraTick / 2.0f), y - 16.0f };
+                // A Raylib exige vértices em ordem anti-horária para preenchimento
+                DrawTriangle(p1, p3, p2, BLUE);
+            }
         }
     }
 }
@@ -566,6 +600,7 @@ void PainelGraficoGantt::renderizar()
         //Coisas importantes
         origemQuadro = ImGui::GetCursorScreenPos();
         listaDesenhos = ImGui::GetWindowDrawList();
+        ClearBackground(DARKGRAY);
 
         if (m_tarefasRef == nullptr || m_historicoRef == nullptr)
         {
@@ -592,8 +627,15 @@ void PainelGraficoGantt::renderizar()
         desenharEixoYELinhasBase(listaDesenhos, origemQuadro, t_Ord);
         desenharBlocosExecucao(listaDesenhos, origemQuadro, t_Ord);
         desenharEventosESinais(listaDesenhos, origemQuadro, t_Ord);
-
         desenharAgulhaTempoAtual(listaDesenhos, origemQuadro, t_Ord.size());
+
+        ImGui::Text("Legenda:");
+        ImGui::Text("Cada tarefa esta representada como uma linha no grafico.");
+        ImGui::Text("Cada tarefa possui uma cor diferente que eh visivel nos instantes em que a tarefa esta executando.");
+        ImGui::Text("Quando uma tarefa esta na fila de prontas e nao esta sendo executada, ela eh caracterizada pela ausencia de cor.");
+        ImGui::Text("Quando a tarefa esta suspensa, o retangulo que a representa fica preto e com hachuras na diagonal.");
+        ImGui::Text("Quando uma tarefa nova chega no sistema, existe uma seta verde na tarefa no instante que ela chegou.");
+
     }
     
     ImGui::End();

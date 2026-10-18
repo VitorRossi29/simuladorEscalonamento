@@ -45,6 +45,96 @@ GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 	//Carregar dados dos Mocks e etc
 }
 
+void GerenciadorGUI::customizarEstilo()
+{
+	// Dark Ruda style by Raikiri from ImThemes
+	ImGuiStyle& style = ImGui::GetStyle();
+
+	style.Alpha = 1.0f;
+	style.DisabledAlpha = 0.6f;
+	style.WindowPadding = ImVec2(8.0f, 8.0f);
+	style.WindowRounding = 0.0f;
+	style.WindowBorderSize = 1.0f;
+	style.WindowMinSize = ImVec2(32.0f, 32.0f);
+	style.WindowTitleAlign = ImVec2(0.0f, 0.5f);
+	style.WindowMenuButtonPosition = ImGuiDir_Left;
+	style.ChildRounding = 0.0f;
+	style.ChildBorderSize = 1.0f;
+	style.PopupRounding = 0.0f;
+	style.PopupBorderSize = 1.0f;
+	style.FramePadding = ImVec2(4.0f, 3.0f);
+	style.FrameRounding = 4.0f;
+	style.FrameBorderSize = 0.0f;
+	style.ItemSpacing = ImVec2(8.0f, 4.0f);
+	style.ItemInnerSpacing = ImVec2(4.0f, 4.0f);
+	style.CellPadding = ImVec2(4.0f, 2.0f);
+	style.IndentSpacing = 21.0f;
+	style.ColumnsMinSpacing = 6.0f;
+	style.ScrollbarSize = 14.0f;
+	style.ScrollbarRounding = 9.0f;
+	style.GrabMinSize = 10.0f;
+	style.GrabRounding = 4.0f;
+	style.TabRounding = 4.0f;
+	style.TabBorderSize = 0.0f;
+	style.ColorButtonPosition = ImGuiDir_Right;
+	style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
+	style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
+
+	style.Colors[ImGuiCol_Text] = ImVec4(0.9490196f, 0.95686275f, 0.9764706f, 1.0f);
+	style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.35686275f, 0.41960785f, 0.46666667f, 1.0f);
+	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.10980392f, 0.14901961f, 0.16862746f, 1.0f);
+	style.Colors[ImGuiCol_ChildBg] = ImVec4(0.14901961f, 0.1764706f, 0.21960784f, 1.0f);
+	style.Colors[ImGuiCol_PopupBg] = ImVec4(0.078431375f, 0.078431375f, 0.078431375f, 0.94f);
+	style.Colors[ImGuiCol_Border] = ImVec4(0.078431375f, 0.09803922f, 0.11764706f, 1.0f);
+	style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+	style.Colors[ImGuiCol_FrameBg] = ImVec4(0.2f, 0.24705882f, 0.28627452f, 1.0f);
+	style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.11764706f, 0.2f, 0.2784314f, 1.0f);
+	style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.08627451f, 0.11764706f, 0.13725491f, 1.0f);
+	style.Colors[ImGuiCol_TitleBg] = ImVec4(0.08627451f, 0.11764706f, 0.13725491f, 0.65f);
+	style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.078431375f, 0.09803922f, 0.11764706f, 1.0f);
+	style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.0f, 0.0f, 0.0f, 0.51f);
+	style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.14901961f, 0.1764706f, 0.21960784f, 1.0f);
+	style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.019607844f, 0.019607844f, 0.019607844f, 0.39f);
+	style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.2f, 0.24705882f, 0.28627452f, 1.0f);
+	style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.1764706f, 0.21960784f, 0.24705882f, 1.0f);
+	style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.08627451f, 0.20784314f, 0.30980393f, 1.0f);
+	style.Colors[ImGuiCol_CheckMark] = ImVec4(0.2784314f, 0.5568628f, 1.0f, 1.0f);
+	style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.2784314f, 0.5568628f, 1.0f, 1.0f);
+	style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.36862746f, 0.60784316f, 1.0f, 1.0f);
+	style.Colors[ImGuiCol_Button] = ImVec4(0.2f, 0.24705882f, 0.28627452f, 1.0f);
+	style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.2784314f, 0.5568628f, 1.0f, 1.0f);
+	style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.05882353f, 0.5294118f, 0.9764706f, 1.0f);
+	style.Colors[ImGuiCol_Header] = ImVec4(0.2f, 0.24705882f, 0.28627452f, 0.55f);
+	style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.25882354f, 0.5882353f, 0.9764706f, 0.8f);
+	style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.25882354f, 0.5882353f, 0.9764706f, 1.0f);
+	style.Colors[ImGuiCol_Separator] = ImVec4(0.2f, 0.24705882f, 0.28627452f, 1.0f);
+	style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.09803922f, 0.4f, 0.7490196f, 0.78f);
+	style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.09803922f, 0.4f, 0.7490196f, 1.0f);
+	style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.25882354f, 0.5882353f, 0.9764706f, 0.25f);
+	style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.25882354f, 0.5882353f, 0.9764706f, 0.67f);
+	style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.25882354f, 0.5882353f, 0.9764706f, 0.95f);
+	style.Colors[ImGuiCol_Tab] = ImVec4(0.10980392f, 0.14901961f, 0.16862746f, 1.0f);
+	style.Colors[ImGuiCol_TabHovered] = ImVec4(0.25882354f, 0.5882353f, 0.9764706f, 0.8f);
+	style.Colors[ImGuiCol_TabActive] = ImVec4(0.2f, 0.24705882f, 0.28627452f, 1.0f);
+	style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.10980392f, 0.14901961f, 0.16862746f, 1.0f);
+	style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.10980392f, 0.14901961f, 0.16862746f, 1.0f);
+	style.Colors[ImGuiCol_PlotLines] = ImVec4(0.60784316f, 0.60784316f, 0.60784316f, 1.0f);
+	style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.0f, 0.42745098f, 0.34901962f, 1.0f);
+	style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.8980392f, 0.69803923f, 0.0f, 1.0f);
+	style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.0f, 0.6f, 0.0f, 1.0f);
+	style.Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.1882353f, 0.1882353f, 0.2f, 1.0f);
+	style.Colors[ImGuiCol_TableBorderStrong] = ImVec4(0.30980393f, 0.30980393f, 0.34901962f, 1.0f);
+	style.Colors[ImGuiCol_TableBorderLight] = ImVec4(0.22745098f, 0.22745098f, 0.24705882f, 1.0f);
+	style.Colors[ImGuiCol_TableRowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+	style.Colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.0f, 1.0f, 1.0f, 0.06f);
+	style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25882354f, 0.5882353f, 0.9764706f, 0.35f);
+	style.Colors[ImGuiCol_DragDropTarget] = ImVec4(1.0f, 1.0f, 0.0f, 0.9f);
+	style.Colors[ImGuiCol_NavHighlight] = ImVec4(0.25882354f, 0.5882353f, 0.9764706f, 1.0f);
+	style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.0f, 1.0f, 1.0f, 0.7f);
+	style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.8f, 0.8f, 0.8f, 0.2f);
+	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.8f, 0.8f, 0.8f, 0.35f);
+}
+
 //Esta função roda uma única vez no início da aplicação ou quando a simulação precisa ser totalmente restaurada
 void GerenciadorGUI::inicializar()
 {
@@ -64,6 +154,8 @@ void GerenciadorGUI::inicializar()
 
 	m_tarefas = GeradorMock::criarTarefasIniciais();
 	m_historico = GeradorMock::gerarHistoricoInicial(m_tarefas, m_totalTicks, m_quantidadeCPUs, m_quantum);
+
+	customizarEstilo();
 }
 
 void GerenciadorGUI::atualizar(float deltaTime)
@@ -83,13 +175,13 @@ void GerenciadorGUI::atualizar(float deltaTime)
 			{
 				m_tickAtual++;
 			}
-			else if (fonteDados == ModoFonteDados::ENGINE_REAL && m_modoExecucao == 0)
-			{
-				// Se chegou ao fim do historico no passo a passo, executa +1 tick no motor
-				m_motor->executaPassoAPasso(1);
-				sincronizarComEngine();
-				m_tickAtual++;
-			}
+			//else if (fonteDados == ModoFonteDados::ENGINE_REAL && m_modoExecucao == 0)
+			//{
+			//	// Se chegou ao fim do historico no passo a passo, executa +1 tick no motor
+			//	m_motor->executaPassoAPasso(1);
+			//	sincronizarComEngine();
+			//	m_tickAtual++;
+			//}
 			else
 			{
 				m_emExecucaoAuto = false;
@@ -279,6 +371,8 @@ void GerenciadorGUI::carregarArquivoEncontrado()
 		m_motor->addTarefa(t);
 	}
 	m_motor->setAlgoritmo(config.algoritmo);
+	m_motor->setQuantidadeCPUs(m_quantidadeCPUs);
+	m_motor->setQuantum(m_quantum);
 
 	// Reinicio da simulacao
 	m_tickAtual = 0;
@@ -299,17 +393,23 @@ void GerenciadorGUI::recalcularSimulacao()
 		else if (m_algoritmo == "EDF")
 			m_motor->setAlgoritmo(TipoAlgoritmo::EARLIEST_DEADLINE_FIRST);
 
+		m_motor->setQuantidadeCPUs(m_quantidadeCPUs);
+		m_motor->setQuantum(m_quantum);
+
 		m_motor->resetSimulacao();
 
-		if (m_modoExecucao == 1) // Modo Instantâneo Completo
-		{
-			m_motor->executaTempoReal();
-		}
-		else // Modo Passo a Passo
-		{
-			// Processa apenas o primeiro passo para inicializar o tick 0
-			m_motor->executaPassoAPasso(1);
-		}
+		//if (m_modoExecucao == 1) // Modo Instantâneo Completo
+		//{
+		//	m_motor->executaTempoReal();
+		//}
+		//else // Modo Passo a Passo
+		//{
+		//	// Processa apenas o primeiro passo para inicializar o tick 0
+		//	m_motor->executaPassoAPasso(1);
+		//}
+
+		// Executa a simulação completa para gerar todo o histórico do hiperperíodo/término
+		m_motor->executaTempoReal();
 
 		sincronizarComEngine();
 	}
@@ -345,6 +445,7 @@ void GerenciadorGUI::sincronizarComEngine()
 		//Falta pegar os eventos mas isso é pra parte 2
 
 		tGUI.prioridade = tReal.getPrioridade();
+
 		m_tarefas.push_back(tGUI);
 	}
 
@@ -353,50 +454,65 @@ void GerenciadorGUI::sincronizarComEngine()
 
 	for (size_t i = 0; i < historicoEngine.size(); i++)
 	{
-		std::vector<short> idsExecutando;
 		const Historico& historicoPasso = historicoEngine[i];
 		SnapshotTick snapGUI;
 		snapGUI.tick = historicoPasso.tempo;
 
-		// VERSAO TEMPORARIA PARA 1 CPU
-		/*
-		if (historicoPasso.tarefaExecutada.getId() != -1)
-		{
-			idsExecutando.push_back(historicoPasso.tarefaExecutada.getId());
-		}
-		*/
+		// N CPUS: ITERAR SOBRE A LISTA DE TAREFAS DA ENGINE E INSERIR TODOS OS IDS VALIDOS EM IDSEXECUTANDO
 
-		// QUANDO HOUVER N CPUS: ITERAR SOBRE A LISTA DE TAREFAS DA ENGINE E INSERIR TODOS OS IDS VALIDOS EM IDSEXECUTANDO
-
-		for (size_t exe = 0; exe < historicoPasso.tarefasExecutadas.size(); exe++)
+		// Verifica cada cpu que estava sendo usada no instante em analise
+		for (size_t cpuj = 0; cpuj < historicoPasso.tarefasExecutadas.size(); cpuj++)
 		{
-			if (historicoPasso.tarefasExecutadas[exe].getId() != -1)
-			{
-				idsExecutando.push_back(historicoPasso.tarefasExecutadas[exe].getId());
-			}
+			EstadoCPU estadocpu;
+			estadocpu.idCpu = static_cast<int>(cpuj + 1); // Atribui um id pro cpu, que começa no cpu 1, cpu 2, etc
+			estadocpu.idTarefaExecutando = historicoPasso.tarefasExecutadas[cpuj].getId();	// Pega o id da tarefa que estava sendo executada
+			snapGUI.cpus.push_back(estadocpu);	// Coloca esse cpu na lista desse insante, com o id dele e da tarefa
 		}
 
-
-		for (size_t s = 0; s < m_motor->getTarefas().size(); s++)
+		// Aqui tem a parte que adquirimos as informacoes da TCB das tarefas
+		for (size_t s = 0; s <historicoPasso.tarefas.size(); s++)
 		{
-			Tarefa tMotor = m_motor->getTarefas()[s];
-			SnapshotTarefa t;
+			Tarefa tMotor = historicoPasso.tarefas[s];
+
+			SnapshotTarefaGUI t;
 			t.idTarefa = tMotor.getId();
 
+			// Duracao restante eh igual na GUI e no Motor
+			t.duracaoRestante = tMotor.getTempoRestante();
+
+			// Prazo restante eh a proxima deadline/prazo tirando o tempo atual
+			// Se for negativo, por seguranca, escolhe o zero
+			t.prazoRestante = std::max(0, tMotor.getProximoDeadline() - historicoPasso.tempo);
+
+			// Procura se a tarefa esta na lista de tarefas que estao executando
+			// Se sim confirma no booleano
 			bool executandoSim = false;
-			for (size_t e = 0; e < idsExecutando.size() && !executandoSim; e++)
+			for (size_t e = 0; e < snapGUI.cpus.size(); e++)
 			{
-				if (idsExecutando[e] == t.idTarefa)
+				// Verifica se para a tarefa t em analise, ela esta sendo executada por algum cpu
+				EstadoCPU& cpuEmAnalise = snapGUI.cpus[e];
+				if (cpuEmAnalise.idTarefaExecutando == t.idTarefa)
 				{
-					t.estado = EstadoTarefa::EXECUTANDO;
+					// Caso o id aramazenado no cpu seja o mesmo que o ID da tarefa,
+					// Ela esta sendo executada
 					executandoSim = true;
+					break;
 				}
 			}
-			if (!executandoSim && tMotor.getProximaLiberacao() <= historicoPasso.tempo && tMotor.getTempoRestante() > 0)
+
+			if (executandoSim)
+			{
+				t.estado = EstadoTarefa::EXECUTANDO;
+			}
+			else if (tMotor.getProximaLiberacao() <= historicoPasso.tempo && tMotor.getTempoRestante() > 0)
 			{
 				t.estado = EstadoTarefa::PRONTA;
 			}
-			else if (!executandoSim)
+			else if (tMotor.getEstado() == EstadoTarefa::TERMINADA || tMotor.getQuantidadeExecucoes() >= 10)
+			{
+				t.estado = EstadoTarefa::TERMINADA;
+			}
+			else
 			{
 				t.estado = EstadoTarefa::ESPERANDO;
 			}
@@ -404,7 +520,7 @@ void GerenciadorGUI::sincronizarComEngine()
 			snapGUI.tarefas.push_back(t);
 		}
 
-		for (size_t d = 0; d < historicoPasso.idDeadlinesPerdidas.size(); d++)
+		/*for (size_t d = 0; d < historicoPasso.idDeadlinesPerdidas.size(); d++)
 		{
 			EventoGantt novoEvento;
 			novoEvento.idTarefa = historicoPasso.idDeadlinesPerdidas[d];
@@ -412,9 +528,9 @@ void GerenciadorGUI::sincronizarComEngine()
 			snapGUI.eventos.push_back(novoEvento);
 		}
 
-		const std::vector<Tarefa>* tarefasDoMotor = &m_motor->getTarefas();
+		const std::vector<Tarefa>* tarefasDoMotor = &m_motor->getTarefas();*/
 
-		for (size_t taf = 0; taf < tarefasDoMotor->size(); taf++)
+		/*for (size_t taf = 0; taf < tarefasDoMotor->size(); taf++)
 		{
 			int ingresso = tarefasDoMotor->at(taf).getIngresso();
 			int periodo = tarefasDoMotor->at(taf).getPeriodo();
@@ -426,7 +542,9 @@ void GerenciadorGUI::sincronizarComEngine()
 				novoEventoIngresso.tipo = TipoEvento::INGRESSO;
 				snapGUI.eventos.push_back(novoEventoIngresso);
 			}
-		}
+		}*/
+
+		snapGUI.eventos = historicoPasso.eventos;
 
 		//Adicao do Snapshot de Tick modificado no historico GUI
 		m_historico.push_back(snapGUI);

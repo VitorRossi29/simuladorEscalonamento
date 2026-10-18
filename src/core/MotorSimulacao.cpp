@@ -1,6 +1,7 @@
 #include "MotorSimulacao.hpp"
 #include <algorithm>
 #include <random>
+#include "../gui/StructsTeste.hpp"
 
 //coloca a tarefa no vetor de tarefas
 void MotorSimulacao::addTarefa(const Tarefa& tarefa)
@@ -13,6 +14,9 @@ void MotorSimulacao::resetSimulacao()
 {
 	tickAtual=0;
 	historicoTimeline.clear();
+
+	// Limpa o vetor de CPUS para cada reset
+	todasCPUs.clear(); // Vitor inseriu
 
 	//cria as CPUs de acordo com a quantidade estabelecida 
 	for(int i=0;i<quantCPUs;i++)
@@ -69,112 +73,250 @@ std::vector<Tarefa*> MotorSimulacao::achaProxima(int quantCPUs)
 
 Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPrioridade)
 {
+	//Historico historicoAtual;
+	//bool numIgual=true;
+
+	//for(Tarefa& t:tarefas) 
+	//{
+	//	t.geraNumeroAleatorio();
+	//}
+
+	//while(numIgual)
+	//{
+	//	numIgual=false;
+	//	for(Tarefa& t:tarefas) 
+	//	{
+	//		for(Tarefa& t2:tarefas)
+	//		{
+	//			if(&t!=&t2 && t.getNumAleatorio()==t2.getNumAleatorio()) //duas tarefas diferentes com num igual
+	//			{
+	//				t2.geraNumeroAleatorio();
+	//				numIgual=true;
+	//			}
+	//		}
+	//	}
+	//}
+
+	////nenhuma tarefa pronta para executar
+	//if(tarefasMaiorPrioridade.empty())
+	//{
+	//	historicoAtual.tempo=tickAtual;
+	//	for (int i=0;i<quantCPUs;i++)
+	//	{
+	//		todasCPUs[i].setTarefaAtual(nullptr); //indica que nenhuma tarefa esta sendo executada na CPU
+	//		todasCPUs[i].atualizaEstado(); //muda para DESLIGADA e incrementa tempo desligada
+	//	}
+
+	//	//cria uma tarefa com a construtora sem parametro para indicar que nenhuma tarefa foi executada nesse tick
+	//	historicoAtual.tarefasExecutadas.push_back(Tarefa());
+	//}
+	//else
+	//{	
+	//	//atribui as tarefas para as CPUs, ve se foram preemptadas e incrementa tempo desligada
+	//	for(int i=0;i<quantCPUs;i++)
+	//	{
+	//		if(i<tarefasMaiorPrioridade.size())
+	//		{
+	//			todasCPUs[i].setTarefaAtual(tarefasMaiorPrioridade[i]); //atribui a tarefa
+	//			todasCPUs[i].getTarefaAtual()->setEstado(EstadoTarefa::EXECUTANDO); //muda o estado da tarefa para EXECUTANDO
+	//			(*todasCPUs[i].getTarefaAtual())--; //decrementa o tempo restante da tarefa
+
+	//			historicoAtual.tarefasExecutadas.push_back(*todasCPUs[i].getTarefaAtual()); //armazena a tarefa no historico
+
+	//			if(todasCPUs[i].getTarefaAnterior()!=nullptr && //tarefa anterior nao nula
+	//				todasCPUs[i].getTarefaAtual()!=todasCPUs[i].getTarefaAnterior() && //tarefa atual diferente da anterior
+	//				todasCPUs[i].getTarefaAnterior()->getTempoRestante()>0) //tarefa anterior ainda nao terminou
+	//			{
+	//				historicoAtual.idTarefasPreemptadas.push_back(todasCPUs[i].getTarefaAnterior()->getId()); //foi preemptada
+	//			}
+	//		}
+	//		
+	//		//tem mais CPUs que tarefas
+	//		else
+	//		{ 
+	//			todasCPUs[i].setTarefaAtual(nullptr);
+	//			historicoAtual.tarefasExecutadas.push_back(Tarefa()); //coloca tarefa vazia
+	//		}
+
+	//		todasCPUs[i].atualizaEstado(); //muda para EXECUTANDO ou DESLIGADA e incrementa tempo desligada se preciso
+	//	}
+
+	//	for(Tarefa& tarefa:tarefas)
+	//	{
+	//		//verifica deadlines perdidas
+	//		if(tarefa.getProximoDeadline()==tickAtual && tarefa.getTempoRestante()>0)
+	//		{
+	//			tarefa.setEstado(EstadoTarefa::DEADLINE_PERDIDA);
+	//			historicoAtual.idDeadlinesPerdidas.push_back(tarefa.getId());
+
+	//			// Registro do evento de estouro
+	//			EventoGantt stouro;
+	//			stouro.tipo = TipoEvento::DEADLINE_STOURO;
+	//			stouro.idTarefa = tarefa.getId();
+	//			historicoAtual.eventos.push_back(stouro);
+
+	//			++tarefa; //incrementa o numero de deadlines perdidas
+	//		}
+	//		//verifica tarefas terminadas
+	//		else if(tarefa.getTempoRestante()==0)
+	//		{
+	//			if(tarefa.getQuantidadeExecucoes()<10)
+	//			{
+	//				tarefa++; //incrementa quantidade de execucoes
+	//				tarefa.preparaProximaExecucao();
+	//			}
+	//			else
+	//			{
+	//				// Registro do evento de conclusao
+	//				EventoGantt conclusao;
+	//				conclusao.tipo = TipoEvento::CONCLUSAO;
+	//				conclusao.idTarefa = tarefa.getId();
+	//				historicoAtual.eventos.push_back(conclusao);
+
+	//				tarefa.setEstado(EstadoTarefa::TERMINADA);
+	//			}
+	//				
+	//		}
+	//		//find procura a tarefa no vetor, se nao achar retorna o final do vetor, se achar retorna o ponteiro para a tarefa
+	//		else if(tarefa.getEstado()==EstadoTarefa::PRONTA &&
+	//			std::find(tarefasMaiorPrioridade.begin(), tarefasMaiorPrioridade.end(), &tarefa)==tarefasMaiorPrioridade.end())
+	//		{
+	//			tarefa+=1; //incrementa o tempo de espera da tarefa
+	//		}
+	//	}
+	//}
+	//historicoAtual.tempo=tickAtual;
+	//for(const Tarefa& tarefa:tarefas)
+	//{
+	//	historicoAtual.todasTarefas.push_back(tarefa.getSnapshot());
+
+	//	// Sinaliza o ingresso da tarefa no momento adequado
+	//	if (tarefa.getIngresso() == tickAtual)
+	//	{
+	//		EventoGantt ingresso;
+	//		ingresso.tipo = TipoEvento::INGRESSO;
+	//		ingresso.idTarefa = tarefa.getId();
+	//		historicoAtual.eventos.push_back(ingresso);
+	//	}
+	//}
+
+	//historicoAtual.tarefas=tarefas;
+	//historicoTimeline.push_back(historicoAtual);
+	//tickAtual++;
+	//return historicoAtual;
+
 	Historico historicoAtual;
-	bool numIgual=true;
 
-	for(Tarefa& t:tarefas) 
+	// 1. Atribuição de CPUs
+	if (tarefasMaiorPrioridade.empty())
 	{
-		t.geraNumeroAleatorio();
-	}
-
-	while(numIgual)
-	{
-		numIgual=false;
-		for(Tarefa& t:tarefas) 
+		for (int i = 0; i < quantCPUs; i++)
 		{
-			for(Tarefa& t2:tarefas)
-			{
-				if(&t!=&t2 && t.getNumAleatorio()==t2.getNumAleatorio()) //duas tarefas diferentes com num igual
-				{
-					t2.geraNumeroAleatorio();
-					numIgual=true;
-				}
-			}
+			todasCPUs[i].setTarefaAtual(nullptr);
+			todasCPUs[i].atualizaEstado();
 		}
-	}
-
-	//nenhuma tarefa pronta para executar
-	if(tarefasMaiorPrioridade.empty())
-	{
-		historicoAtual.tempo=tickAtual;
-		for (int i=0;i<quantCPUs;i++)
-		{
-			todasCPUs[i].setTarefaAtual(nullptr); //indica que nenhuma tarefa esta sendo executada na CPU
-			todasCPUs[i].atualizaEstado(); //muda para DESLIGADA e incrementa tempo desligada
-		}
-
-		//cria uma tarefa com a construtora sem parametro para indicar que nenhuma tarefa foi executada nesse tick
 		historicoAtual.tarefasExecutadas.push_back(Tarefa());
 	}
 	else
-	{	
-		//atribui as tarefas para as CPUs, ve se foram preemptadas e incrementa tempo desligada
-		for(int i=0;i<quantCPUs;i++)
+	{
+		for (int i = 0; i < quantCPUs; i++)
 		{
-			if(i<tarefasMaiorPrioridade.size())
+			if (i < tarefasMaiorPrioridade.size())
 			{
-				todasCPUs[i].setTarefaAtual(tarefasMaiorPrioridade[i]); //atribui a tarefa
-				todasCPUs[i].getTarefaAtual()->setEstado(EstadoTarefa::EXECUTANDO); //muda o estado da tarefa para EXECUTANDO
-				(*todasCPUs[i].getTarefaAtual())--; //decrementa o tempo restante da tarefa
+				todasCPUs[i].setTarefaAtual(tarefasMaiorPrioridade[i]);
+				todasCPUs[i].getTarefaAtual()->setEstado(EstadoTarefa::EXECUTANDO);
+				(*todasCPUs[i].getTarefaAtual())--; // Decrementa tempo restante
 
-				historicoAtual.tarefasExecutadas.push_back(*todasCPUs[i].getTarefaAtual()); //armazena a tarefa no historico
+				historicoAtual.tarefasExecutadas.push_back(*todasCPUs[i].getTarefaAtual());
 
-				if(todasCPUs[i].getTarefaAnterior()!=nullptr && //tarefa anterior nao nula
-					todasCPUs[i].getTarefaAtual()!=todasCPUs[i].getTarefaAnterior() && //tarefa atual diferente da anterior
-					todasCPUs[i].getTarefaAnterior()->getTempoRestante()>0) //tarefa anterior ainda nao terminou
+				if (todasCPUs[i].getTarefaAnterior() != nullptr &&
+					todasCPUs[i].getTarefaAtual() != todasCPUs[i].getTarefaAnterior() &&
+					todasCPUs[i].getTarefaAnterior()->getTempoRestante() > 0)
 				{
-					historicoAtual.idTarefasPreemptadas.push_back(todasCPUs[i].getTarefaAnterior()->getId()); //foi preemptada
+					historicoAtual.idTarefasPreemptadas.push_back(todasCPUs[i].getTarefaAnterior()->getId());
 				}
 			}
-			
-			//tem mais CPUs que tarefas
 			else
-			{ 
+			{
 				todasCPUs[i].setTarefaAtual(nullptr);
-				historicoAtual.tarefasExecutadas.push_back(Tarefa()); //coloca tarefa vazia
+				historicoAtual.tarefasExecutadas.push_back(Tarefa());
 			}
 
-			todasCPUs[i].atualizaEstado(); //muda para EXECUTANDO ou DESLIGADA e incrementa tempo desligada se preciso
-		}
-
-		for(Tarefa& tarefa:tarefas)
-		{
-			//verifica deadlines perdidas
-			if(tarefa.getProximoDeadline()==tickAtual && tarefa.getTempoRestante()>0)
-			{
-				tarefa.setEstado(EstadoTarefa::DEADLINE_PERDIDA);
-				historicoAtual.idDeadlinesPerdidas.push_back(tarefa.getId());
-				++tarefa; //incrementa o numero de deadlines perdidas
-			}
-			//verifica tarefas terminadas
-			else if(tarefa.getTempoRestante()==0)
-			{
-				if(tarefa.getQuantidadeExecucoes()<10)
-				{
-					tarefa++; //incrementa quantidade de execucoes
-					tarefa.preparaProximaExecucao();
-				}
-				else
-					tarefa.setEstado(EstadoTarefa::TERMINADA);
-			}
-			//find procura a tarefa no vetor, se nao achar retorna o final do vetor, se achar retorna o ponteiro para a tarefa
-			else if(tarefa.getEstado()==EstadoTarefa::PRONTA &&
-				std::find(tarefasMaiorPrioridade.begin(), tarefasMaiorPrioridade.end(), &tarefa)==tarefasMaiorPrioridade.end())
-			{
-				tarefa+=1; //incrementa o tempo de espera da tarefa
-			}
+			todasCPUs[i].atualizaEstado();
 		}
 	}
-	historicoAtual.tempo=tickAtual;
-	for(const Tarefa& tarefa:tarefas)
+
+	// 2. Atualização de Ciclo das Tarefas (RODA EM TODOS OS TICKS)
+	for (Tarefa& tarefa : tarefas)
+	{
+		// Ignora tarefas que já encerraram seu ciclo de vida
+		if (tarefa.getEstado() == EstadoTarefa::TERMINADA)
+		{
+			continue;
+		}
+
+		// Verifica deadlines perdidas
+		if (tarefa.getProximoDeadline() == tickAtual && tarefa.getTempoRestante() > 0)
+		{
+			tarefa.setEstado(EstadoTarefa::DEADLINE_PERDIDA);
+			historicoAtual.idDeadlinesPerdidas.push_back(tarefa.getId());
+
+			EventoGantt stouro;
+			stouro.tipo = TipoEvento::DEADLINE_STOURO;
+			stouro.idTarefa = tarefa.getId();
+			historicoAtual.eventos.push_back(stouro);
+
+			++tarefa; // Incrementa número de deadlines perdidas
+		}
+		// Verifica conclusão do período/instância atual
+		else if (tarefa.getTempoRestante() == 0)
+		{
+			tarefa++; // Incrementa quantidade de execuções concluídas
+
+			if (tarefa.getQuantidadeExecucoes() < 10)
+			{
+				tarefa.preparaProximaExecucao(); // Prepara próximo ciclo (soma período)
+			}
+			else
+			{
+				// Conclusão definitiva da tarefa após 10 execuções
+				EventoGantt conclusao;
+				conclusao.tipo = TipoEvento::CONCLUSAO;
+				conclusao.idTarefa = tarefa.getId();
+				historicoAtual.eventos.push_back(conclusao);
+
+				tarefa.setEstado(EstadoTarefa::TERMINADA);
+			}
+		}
+		// Incrementa tempo de espera se a tarefa estiver pronta mas não foi executada neste tick
+		else if (tarefa.getEstado() == EstadoTarefa::PRONTA &&
+			std::find(tarefasMaiorPrioridade.begin(), tarefasMaiorPrioridade.end(), &tarefa) == tarefasMaiorPrioridade.end())
+		{
+			tarefa += 1;
+		}
+	}
+
+	// 3. Registro do Histórico e Eventos de Ingresso
+	historicoAtual.tempo = tickAtual;
+	for (const Tarefa& tarefa : tarefas)
 	{
 		historicoAtual.todasTarefas.push_back(tarefa.getSnapshot());
+
+		if (tarefa.getIngresso() == tickAtual)
+		{
+			EventoGantt ingresso;
+			ingresso.tipo = TipoEvento::INGRESSO;
+			ingresso.idTarefa = tarefa.getId();
+			historicoAtual.eventos.push_back(ingresso);
+		}
 	}
 
-	historicoAtual.tarefas=tarefas;
+	historicoAtual.tarefas = tarefas;
 	historicoTimeline.push_back(historicoAtual);
 	tickAtual++;
+
 	return historicoAtual;
+
 }
 
 //atribui as prioridades estaticas para as tarefas

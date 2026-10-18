@@ -11,6 +11,7 @@ const char* estadoParaString(EstadoTarefa estado)
     case EstadoTarefa::PRONTA:     return "PRONTA";
     case EstadoTarefa::ESPERANDO:   return "ESPERANDO";
     case EstadoTarefa::DEADLINE_PERDIDA:  return "DEADLINE PERDIDA";
+    case EstadoTarefa::TERMINADA:  return "TERMINADA";
     default:                       return "DESCONHECIDO";
     }
 }

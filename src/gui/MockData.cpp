@@ -75,7 +75,7 @@ std::vector<SnapshotTick> GeradorMock::gerarHistoricoInicial(std::vector<TarefaG
             }
 
             //Cria foto momentanea instantanea da tarefa
-            SnapshotTarefa snapTask;
+            SnapshotTarefaGUI snapTask;
             snapTask.idTarefa = idAtual;
             if (emExecucao)
                 snapTask.estado = EstadoTarefa::EXECUTANDO;

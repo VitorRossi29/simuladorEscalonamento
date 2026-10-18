@@ -17,6 +17,7 @@ private:
 	std::vector<Historico> historicoTimeline;
 	std::vector<CPU> todasCPUs;
 	int quantCPUs;
+	int quantum;
 
 	enum class EstadoSimulacao
 	{
@@ -30,6 +31,7 @@ public:
 	MotorSimulacao()
 	{
 		quantCPUs=1;
+		quantum = 1;
 		resetSimulacao();
 	}
 	void addTarefa(const Tarefa& tarefa);
@@ -60,4 +62,9 @@ public:
 	void setAlgoritmo(TipoAlgoritmo algo) { algoritmoSelecionado=algo; }
 	void limparTarefas() { tarefas.clear(); resetSimulacao(); }
 	bool desempate(const Tarefa* a, const Tarefa* b);
+
+	// Altera o numero de CPUs
+	void setQuantidadeCPUs(int cpus) { quantCPUs = cpus; }
+	// Altera o numero de quantums
+	void setQuantum(int quanter) { quantum = quanter; }
 };

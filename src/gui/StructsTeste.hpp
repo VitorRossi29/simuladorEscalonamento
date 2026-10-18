@@ -1,7 +1,6 @@
 #pragma once
-
-#include "../core/MotorSimulacao.hpp"
 #include "../core/Tarefa.hpp"
+#include <vector>
 
 // Tipos de eventos visuais marcados na linha do tempo[cite: 6, 8, 9]
 enum class TipoEvento {
@@ -13,11 +12,11 @@ enum class TipoEvento {
 };
 
 // Registro de um evento específico ocorrido em um tick[cite: 6]
-struct EventoGantt {
+typedef struct {
     int idTarefa;
     TipoEvento tipo;
     std::string detalhe;
-};
+} EventoGantt;
 
 // Estado individual de cada CPU no tick corrente[cite: 4, 5]
 struct EstadoCPU {
@@ -26,7 +25,7 @@ struct EstadoCPU {
 };
 
 // Registro completo do estado de uma tarefa no tick corrente[cite: 5]
-struct SnapshotTarefa {
+struct SnapshotTarefaGUI {
     int idTarefa;
     EstadoTarefa estado;
     int duracaoRestante;      // Quanto tempo de CPU ainda precisa executar
@@ -37,7 +36,7 @@ struct SnapshotTarefa {
 struct SnapshotTick {
     int tick;                                // Instante de tempo t (0, 1, 2, ...)[cite: 5]
     std::vector<EstadoCPU> cpus;             // Estado de cada CPU[cite: 4, 5]
-    std::vector<SnapshotTarefa> tarefas;     // Estado de cada TCB[cite: 5]
+    std::vector<SnapshotTarefaGUI> tarefas;     // Estado de cada TCB[cite: 5]
     std::vector<EventoGantt> eventos;        // Eventos disparados neste tick[cite: 6]
 };
 

@@ -84,6 +84,10 @@ void Tarefa::resetaTarefa()
 	snapshot.proximaLiberacao=ingresso;
 	snapshot.deadlinesPerdidas=0;
 	snapshot.tempoEspera=0;
+
+	//Mudanca feita pelo vitor que pode estar errada
+	snapshot.quantidadeExecucoes = 0;
+
 	snapshot.estado=EstadoTarefa::NOVA;
 }
 
