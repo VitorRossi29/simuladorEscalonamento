@@ -77,6 +77,7 @@ bool PainelTabelaTarefas::renderizar()
 bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
 {
     int idParaRemover = -1;
+    bool editouAlgumCampo = false;
 
     // Abre a tabela com 8 colunas
     if (ImGui::BeginTable("TabelaTarefasSimulacao", 8, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
@@ -114,25 +115,25 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1); // Faz o input ocupar toda a largura da celula
             if (ImGui::InputInt("##ingresso", &tarefa.ingresso, 0)) // "##" esconde o rotulo do input
-                return true;
+                editouAlgumCampo = true;
 
             // Coluna 3: Duração (C)
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1);
             if (ImGui::InputInt("##duracao", &tarefa.duracao, 0))
-                return true;
+                editouAlgumCampo = true;
 
             // Coluna 4: Período (T)
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1);
             if (ImGui::InputInt("##periodo", &tarefa.periodo, 0))
-                return true;
+                editouAlgumCampo = true;
 
             // Coluna 5: Prazo (D)
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1);
             if (ImGui::InputInt("##prazo", &tarefa.prazo, 0))
-                return true;
+                editouAlgumCampo = true;
 
             // Coluna 6: Estado Atual no Tick
             //Busca o estado da tarefa no snapshot do tick atual
@@ -176,13 +177,14 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
             if ((*m_tarefasRef)[i].id == idParaRemover)
             {
                 m_tarefasRef->erase(m_tarefasRef->begin() + i);
+                editouAlgumCampo = true;
                 break;
             }
         }
     }
 
     // Se nao houve alteracao retorna falso
-    return false;
+    return editouAlgumCampo;
 }
 
 bool PainelTabelaTarefas::desenharFormularioInsercao()

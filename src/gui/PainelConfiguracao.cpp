@@ -86,15 +86,24 @@ bool PainelConfiguracao::renderizar()
 	static bool carregarTexto = false;
 	static char cam[200];
 
-	if (ImGui::Button("Carregar arquivo de informacoes"))
+	if (*m_modoFonte == ModoFonteDados::ENGINE_REAL)
 	{
-		caminhoArquivoCaixa = !caminhoArquivoCaixa;
-	}
-	if (caminhoArquivoCaixa)
-	{
-		ImGui::InputText("Caminho do arquivo", cam, 200);
-		caminhoArquivo = cam;
-		alterado = true;
+		if (ImGui::Button("Carregar arquivo de informacoes"))
+		{
+			caminhoArquivoCaixa = !caminhoArquivoCaixa;
+		}
+		if (caminhoArquivoCaixa)
+		{
+			ImGui::InputText("Caminho do arquivo", cam, 200);
+			if (ImGui::Button("Confirmar"))
+			{
+				caminhoArquivo = cam;
+				alterado = true;
+				caminhoArquivoCaixa = !caminhoArquivoCaixa;
+
+				cam[0] = '\0';
+			}
+		}
 	}
 
 	ImGui::End();
@@ -116,6 +125,7 @@ void PainelConfiguracao::renderizarMetricas(const std::vector<TarefaGUI>& tarefa
 		return;
 	}
 
+	ImGui::Text("Nivel de uso das CPUs");
 	if (m_qtdeCpus != 0)
 		progresso = (float)utilizacaoCPU / (float) *m_qtdeCpus;
 	else

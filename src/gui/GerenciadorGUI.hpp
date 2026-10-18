@@ -29,12 +29,14 @@ private:
 	int m_quantum;
 
 	int m_modoExecucao;     //modo 0 = passo a passo; 1 = instantaneo
+	int m_modoExecucaoAnterior;
 	int m_algoritmoSelecionado;
 
 	int m_quantidadeCPUsAnterior, m_quantumAnterior, m_algoritmoAnterior;
 
 	std::string m_algoritmo;
 	std::string caminhoArquivo;
+	std::string caminhoArquivoAnterior;
 
 	bool m_exibirConfig, m_exibirControles, m_exibirTabela, m_exibirGantt;
 	bool m_solicitarExportacao; //Holy aura
@@ -74,8 +76,5 @@ public:
 
 	void screenShotAvancada();
 
-	void reescalonarAPartirDoTickAtual();
-
-	//Passa as tarefas editadas na GUI para o m_motor antes de recalcular
-	
+	void reescalonarAPartirDoTickAtual();	
 };

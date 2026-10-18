@@ -19,9 +19,11 @@ GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 	m_quantidadeCPUs(2),
 	m_quantum(1),
 	m_modoExecucao(0),
+	m_modoExecucaoAnterior(0),
 	m_algoritmoSelecionado(0),
 	m_algoritmo("RM"),
 	caminhoArquivo(""),
+	caminhoArquivoAnterior(""),
 
 	m_quantidadeCPUsAnterior(m_quantidadeCPUs),
 	m_quantumAnterior(m_quantum),
@@ -81,6 +83,13 @@ void GerenciadorGUI::atualizar(float deltaTime)
 			{
 				m_tickAtual++;
 			}
+			else if (fonteDados == ModoFonteDados::ENGINE_REAL && m_modoExecucao == 0)
+			{
+				// Se chegou ao fim do historico no passo a passo, executa +1 tick no motor
+				m_motor->executaPassoAPasso(1);
+				sincronizarComEngine();
+				m_tickAtual++;
+			}
 			else
 			{
 				m_emExecucaoAuto = false;
@@ -120,9 +129,9 @@ void GerenciadorGUI::renderizar()
 
 		bool configAlteradaNoPainel = false;
 
-		//Desenho Sequencial dos Paineis
+		// Desenho Sequencial dos Paineis
 		if (m_exibirConfig)
-			configAlteradaNoPainel = m_painelConfig.renderizar();
+			configAlteradaNoPainel = m_painelConfig.renderizar();	
 
 		if(m_exibirControles)
 			m_painelControles.renderizar();
@@ -131,13 +140,15 @@ void GerenciadorGUI::renderizar()
 		{
 			if (m_painelTabela.renderizar())
 			{
+				// Envia os dados alterados na GUI para o motor antes de recalcular
+
+				atualizarTarefasNaEngine();
 				if (m_tickAtual == 0)
 				{
 					recalcularSimulacao();
 				}
 				else
 				{
-					atualizarTarefasNaEngine();
 					reescalonarAPartirDoTickAtual();
 				}
 			}
@@ -146,16 +157,27 @@ void GerenciadorGUI::renderizar()
 		if (m_exibirGantt)
 			m_painelGantt.renderizar();
 
+
 		// Checa se as tarefas mudaram OU se alguma configuração foi alterada na interface
 		// Deteccao e Reacao unificada de mudanças
 		bool tarefasMudaram = (numeroTarefas != static_cast<int>(m_tarefas.size()));
 		bool valoresMudaram = (m_quantidadeCPUs != m_quantidadeCPUsAnterior ||
 			m_quantum != m_quantumAnterior ||
 			m_algoritmoSelecionado != m_algoritmoAnterior ||
+			m_modoExecucao != m_modoExecucaoAnterior ||
 			fonteDados != m_fonteDadosAnterior);
 
 		if (configAlteradaNoPainel || tarefasMudaram || valoresMudaram)
 		{
+			if (configAlteradaNoPainel)
+			{
+				if (caminhoArquivo != caminhoArquivoAnterior)
+				{
+					caminhoArquivoAnterior = caminhoArquivo;
+					carregarArquivoEncontrado();
+				}
+			}
+
 			recalcularSimulacao();
 
 			//Reset da agulha de tempo
@@ -166,6 +188,7 @@ void GerenciadorGUI::renderizar()
 			m_quantidadeCPUsAnterior = m_quantidadeCPUs;
 			m_quantumAnterior = m_quantum;
 			m_algoritmoAnterior = m_algoritmoSelecionado;
+			m_modoExecucaoAnterior = m_modoExecucao;
 			m_fonteDadosAnterior = fonteDados;
 		}
 
