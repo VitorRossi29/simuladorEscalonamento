@@ -7,6 +7,18 @@
 #include "../core/MotorSimulacao.hpp"
 #include "../reader/Leitor.hpp"
 
+#ifndef ImGuiCol_TabActive
+#define ImGuiCol_TabActive ImGuiCol_HeaderActive
+#endif
+
+#ifndef ImGuiCol_TabUnfocused
+#define ImGuiCol_TabUnfocused ImGuiCol_Header
+#endif
+
+#ifndef ImGuiCol_TabUnfocusedActive
+#define ImGuiCol_TabUnfocusedActive ImGuiCol_HeaderHovered
+#endif
+
 GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 	m_motor(motor),
 	fonteDados(ModoFonteDados::MOCK),
@@ -514,7 +526,9 @@ void GerenciadorGUI::sincronizarComEngine()
 			}
 			else
 			{
-				t.estado = EstadoTarefa::ESPERANDO;
+				// Temporariamente alterado
+				//t.estado = EstadoTarefa::ESPERANDO;
+				t.estado = EstadoTarefa::PRONTA;
 			}
 
 			snapGUI.tarefas.push_back(t);

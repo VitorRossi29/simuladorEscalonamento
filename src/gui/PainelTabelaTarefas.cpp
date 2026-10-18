@@ -16,6 +16,57 @@ const char* estadoParaString(EstadoTarefa estado)
     }
 }
 
+// Retorna verdadeiro se a transição entre os estados for semanticamente válida
+bool validarTransicaoEstado(EstadoTarefa atual, EstadoTarefa novo, std::string& mensagemErro)
+{
+    // 1. DEADLINE_PERDIDA não é um estado selecionável manualmente
+    if (novo == EstadoTarefa::DEADLINE_PERDIDA)
+    {
+        mensagemErro = "DEADLINE_PERDIDA eh um evento automatico do sistema e nao pode ser definido manualmente.";
+        return false;
+    }
+
+    // 2. Transições a partir do estado NOVA
+    if (atual == EstadoTarefa::NOVA)
+    {
+        if (novo == EstadoTarefa::PRONTA) return true;
+        mensagemErro = "Uma tarefa NOVA so pode transicionar para o estado PRONTA (admissao no sistema).";
+        return false;
+    }
+
+    // 3. Transições a partir do estado PRONTA
+    if (atual == EstadoTarefa::PRONTA)
+    {
+        if (novo == EstadoTarefa::EXECUTANDO || novo == EstadoTarefa::ESPERANDO) return true;
+        mensagemErro = "Uma tarefa PRONTA so pode ir para EXECUTANDO (alocada na CPU) ou ESPERANDO (suspensa).";
+        return false;
+    }
+
+    // 4. Transições a partir do estado EXECUTANDO
+    if (atual == EstadoTarefa::EXECUTANDO)
+    {
+        if (novo == EstadoTarefa::PRONTA || novo == EstadoTarefa::ESPERANDO || novo == EstadoTarefa::TERMINADA) return true;
+        mensagemErro = "Uma tarefa EXECUTANDO so pode ir para PRONTA (preempcao), ESPERANDO (bloqueio) ou TERMINADA.";
+        return false;
+    }
+
+    // 5. Transições a partir do estado ESPERANDO (SUSPENSA)
+    if (atual == EstadoTarefa::ESPERANDO)
+    {
+        if (novo == EstadoTarefa::PRONTA) return true;
+        mensagemErro = "Uma tarefa ESPERANDO (suspensa) so pode voltar para o estado PRONTA.";
+        return false;
+    }
+
+    // 6. Transições a partir do estado TERMINADA
+    if (atual == EstadoTarefa::TERMINADA)
+    {
+        mensagemErro = "Uma tarefa TERMINADA nao pode mudar de estado diretamente. Use o botao Reset para reiniciar.";
+        return false;
+    }
+
+    return true;
+}
 
 PainelTabelaTarefas::PainelTabelaTarefas(std::vector<TarefaGUI>* tarefas,
     const std::vector<SnapshotTick>* historico,
@@ -79,6 +130,8 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
 {
     int idParaRemover = -1;
     bool editouAlgumCampo = false;
+    static bool exibirModalErro = false;
+    static std::string mensagemErroTransicao = "";
 
     // Abre a tabela com 8 colunas
     if (ImGui::BeginTable("TabelaTarefasSimulacao", 8, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
@@ -140,22 +193,58 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
             //Busca o estado da tarefa no snapshot do tick atual
             ImGui::TableNextColumn();
 
-            std::string estadoStr = "ESPERANDO";
+
+            EstadoTarefa estadoAtual = EstadoTarefa::PRONTA;
             if (snapshotAtual != nullptr)
             {
                 for (size_t j = 0; j < snapshotAtual->tarefas.size(); j++)
                 {
                     if (snapshotAtual->tarefas[j].idTarefa == tarefa.id)
                     {
-                        estadoStr = estadoParaString(snapshotAtual->tarefas[j].estado);
+                        estadoAtual = snapshotAtual->tarefas[j].estado;
                         break;
                     }
                 }
             }
-            
-            ImGui::Text("%s", estadoStr.c_str() );
 
-            // Coluna 7: Botão de Ação
+            const char* opcoesEstados[] = { "NOVA", "PRONTA", "EXECUTANDO", "ESPERANDO", "TERMINADA" };
+            EstadoTarefa mapaEstadosEnum[] = { EstadoTarefa::NOVA, EstadoTarefa::PRONTA, EstadoTarefa::EXECUTANDO, EstadoTarefa::ESPERANDO, EstadoTarefa::TERMINADA };
+
+            int itemSelecionadoIndex = 1; // Padrão PRONTA
+            for (int e = 0; e < 5; e++)
+            {
+                if (mapaEstadosEnum[e] == estadoAtual)
+                {
+                    itemSelecionadoIndex = e;
+                    break;
+                }
+            }
+
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::Combo("##EstadoCombo", &itemSelecionadoIndex, opcoesEstados, 5))
+            {
+                EstadoTarefa novoEstadoProposto = mapaEstadosEnum[itemSelecionadoIndex];
+
+                if (novoEstadoProposto != estadoAtual)
+                {
+                    std::string erro;
+                    // Valida se a transição de estado é permitida
+                    if (validarTransicaoEstado(estadoAtual, novoEstadoProposto, erro))
+                    {
+                        tarefa.estado = novoEstadoProposto;
+                        editouAlgumCampo = true; // Aplica e aciona o reescalonamento
+                    }
+                    else
+                    {
+                        // Bloqueia a alteração e exibe o aviso ao usuário (Requisito 3.4)
+                        mensagemErroTransicao = erro;
+                        exibirModalErro = true;
+                        ImGui::OpenPopup("Transição de Estado Inválida");
+                    }
+                }
+            }
+
+            // Coluna 7: Botao de Remover
             ImGui::TableNextColumn();
             if (ImGui::Button("Remover")) 
             {
@@ -182,6 +271,21 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
                 break;
             }
         }
+    }
+
+    if (ImGui::BeginPopupModal("Transição de Estado Inválida", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Erro de Transicao de Estado no RTOS:");
+        ImGui::Separator();
+        ImGui::TextWrapped("%s", mensagemErroTransicao.c_str());
+        ImGui::Spacing();
+
+        if (ImGui::Button("Compreendido", ImVec2(120, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+            exibirModalErro = false;
+        }
+        ImGui::EndPopup();
     }
 
     // Se nao houve alteracao retorna falso
@@ -227,7 +331,7 @@ bool PainelTabelaTarefas::desenharFormularioInsercao()
         tarefaNova.periodo = m_novoPeriodo;
         tarefaNova.prazo = m_novoPrazo;
         tarefaNova.lista_eventos = ""; //String que sera usada no projeto B
-        tarefaNova.estado = EstadoTarefa::ESPERANDO; // Estado inicial padrao
+        tarefaNova.estado = EstadoTarefa::PRONTA; // Estado inicial padrao
 
         m_tarefasRef->push_back(tarefaNova);
 
