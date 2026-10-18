@@ -42,14 +42,16 @@ private:
     short int prioridade;
 	std::string cor;
 
-    //dinâmicos
+    //dinamicos
 	SnapshotTarefas snapshot;
 
 public:
     Tarefa();
 	Tarefa(short int id, int duracao, int periodo, int prazo, int ingresso, short int prioridadeEstatica, std::string cor);
+	Tarefa(int valorMaximo);
     ~Tarefa();
 	void resetaTarefa();
+
 	void operator--(int) { snapshot.tempoRestante--; }
 	void operator++(int) { snapshot.quantidadeExecucoes++; }
 	void operator++() { snapshot.deadlinesPerdidas++; }
@@ -71,10 +73,8 @@ public:
 	int getQuantidadeExecucoes() const { return snapshot.quantidadeExecucoes; }
 	EstadoTarefa getEstado() const { return snapshot.estado; }
 	SnapshotTarefas getSnapshot() const { return snapshot; }
-
 	const std::string& getCor() const { return cor; }
 	void setCor(const std::string& novaCor) { cor=novaCor; }
-
 	void setEstado(EstadoTarefa estado) { snapshot.estado=estado; }
 };
 
