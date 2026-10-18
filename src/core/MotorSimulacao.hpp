@@ -43,7 +43,6 @@ public:
 
 	double calculaUtilizacaoCPU();
 	bool verificaEscalabilidade();
-	bool escalabilidadeRM();
 
 	void executaTempoReal();
 	void executaPassoAPasso(int instrucao);
