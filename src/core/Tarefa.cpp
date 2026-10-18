@@ -80,10 +80,26 @@ Tarefa::~Tarefa()
 void Tarefa::resetaTarefa()
 {
 	snapshot.tempoRestante=duracao;
-	snapshot.proximoDeadline+=periodo;
-	snapshot.proximaLiberacao+=periodo;
+	snapshot.proximoDeadline=ingresso+prazo;
+	snapshot.proximaLiberacao=ingresso;
 	snapshot.deadlinesPerdidas=0;
 	snapshot.tempoEspera=0;
 	snapshot.estado=EstadoTarefa::NOVA;
+}
+
+void Tarefa::preparaProximaExecucao()
+{
+	snapshot.tempoRestante=duracao;
+	snapshot.proximoDeadline+=periodo;
+	snapshot.proximaLiberacao+=periodo;
+	snapshot.estado=EstadoTarefa::NOVA;
+}
+
+void Tarefa::geraNumeroAleatorio()
+{
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<int> dis(-2000000, 2000000);
+		numAleatorio=dis(gen);
 }
 

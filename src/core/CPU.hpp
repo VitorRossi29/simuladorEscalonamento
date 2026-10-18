@@ -7,8 +7,6 @@ enum class estadoCPU
 	DESLIGADA
 };
 
-static int idCPUGlobal=1;
-
 class CPU
 {
 private:
@@ -20,7 +18,7 @@ private:
 	Tarefa* tarefaAnterior;
 
 public:
-	CPU():idCPU(idCPUGlobal++), tempoDesligada(0), tarefaAtual(nullptr), tarefaAnterior(nullptr) {}
+	CPU(int id):idCPU(id), tempoDesligada(0), tarefaAtual(nullptr), tarefaAnterior(nullptr) {}
 	int getId() const { return idCPU; }
 	Tarefa* getTarefaAtual() const { return tarefaAtual; }
 	Tarefa* getTarefaAnterior() const { return tarefaAnterior; }

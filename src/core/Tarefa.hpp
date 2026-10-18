@@ -41,6 +41,7 @@ private:
     int ingresso;
     short int prioridade;
 	std::string cor;
+	int numAleatorio=0;
 
     //dinamicos
 	SnapshotTarefas snapshot;
@@ -51,6 +52,8 @@ public:
 	Tarefa(int valorMaximo);
     ~Tarefa();
 	void resetaTarefa();
+	void preparaProximaExecucao();
+	void geraNumeroAleatorio();
 
 	void operator--(int) { snapshot.tempoRestante--; }
 	void operator++(int) { snapshot.quantidadeExecucoes++; }
@@ -76,6 +79,7 @@ public:
 	const std::string& getCor() const { return cor; }
 	void setCor(const std::string& novaCor) { cor=novaCor; }
 	void setEstado(EstadoTarefa estado) { snapshot.estado=estado; }
+	int getNumAleatorio() const { return numAleatorio; }
 };
 
 
