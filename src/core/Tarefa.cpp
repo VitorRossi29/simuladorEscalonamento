@@ -56,9 +56,18 @@ Tarefa::Tarefa(int ingressoMaximo)
 	prazo=periodo-1;
 	duracao=prazo-2;
 
-	std::vector<std::string> coresDisponiveis={"Azul", "Vermelho", "Verde", "Amarelo", "Roxo", "Laranja"}; //cores possiveis
-	std::uniform_int_distribution<int> disCor(0, coresDisponiveis.size()-1);
-	cor=coresDisponiveis[disCor(gen)];
+	//gera 6 caracteres e usa para o codigo hexadecimal da cor
+	const char caracteres[]="0123456789ABCDEF";
+
+	std::string corAleatoria="";
+	std::uniform_int_distribution<int> disCaracter(0, 15);
+
+	for (int i=0;i<6;i++) 
+	{
+		corAleatoria+=caracteres[disCaracter(gen)];
+	}
+
+	cor=corAleatoria;
 
 	id=idPronto++; //garante ids diferente para todas inicialmente
 	prioridade=-1; //caso o algoritmo utilize o proprio calcula
