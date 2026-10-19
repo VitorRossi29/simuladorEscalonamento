@@ -6,8 +6,8 @@ enum class EstadoTarefa
 	NOVA,
     PRONTA,
     EXECUTANDO,
-    ESPERANDO,
-    DEADLINE_PERDIDA,
+    SUSPENSA,
+    //DEADLINE_PERDIDA,
 	TERMINADA
 };
 
@@ -52,7 +52,7 @@ public:
 	Tarefa(int valorMaximo);
     ~Tarefa();
 	void resetaTarefa();
-	void preparaProximaExecucao();
+	void preparaProximaExecucao(int tickAtual);
 	void geraNumeroAleatorio();
 
 	void operator--(int) { snapshot.tempoRestante--; }
@@ -79,6 +79,10 @@ public:
 	const std::string& getCor() const { return cor; }
 	void setCor(const std::string& novaCor) { cor=novaCor; }
 	void setEstado(EstadoTarefa estado) { snapshot.estado=estado; }
+	void setIngresso(int ing) { ingresso = ing; }
+	void setDuracao(int dura) { duracao = dura; }
+	void setPeriodo(int per) { periodo = per; }
+	void setPrazo(int praz) { prazo = praz; }
 	int getNumAleatorio() const { return numAleatorio; }
 };
 

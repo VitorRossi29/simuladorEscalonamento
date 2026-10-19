@@ -9,8 +9,7 @@ const char* estadoParaString(EstadoTarefa estado)
     {
     case EstadoTarefa::EXECUTANDO: return "EXECUTANDO";
     case EstadoTarefa::PRONTA:     return "PRONTA";
-    case EstadoTarefa::ESPERANDO:   return "ESPERANDO";
-    case EstadoTarefa::DEADLINE_PERDIDA:  return "DEADLINE PERDIDA";
+    case EstadoTarefa::SUSPENSA:   return "SUSPENSA";
     case EstadoTarefa::TERMINADA:  return "TERMINADA";
     default:                       return "DESCONHECIDO";
     }
@@ -19,14 +18,7 @@ const char* estadoParaString(EstadoTarefa estado)
 // Retorna verdadeiro se a transição entre os estados for semanticamente válida
 bool validarTransicaoEstado(EstadoTarefa atual, EstadoTarefa novo, std::string& mensagemErro)
 {
-    // 1. DEADLINE_PERDIDA não é um estado selecionável manualmente
-    if (novo == EstadoTarefa::DEADLINE_PERDIDA)
-    {
-        mensagemErro = "DEADLINE_PERDIDA eh um evento automatico do sistema e nao pode ser definido manualmente.";
-        return false;
-    }
-
-    // 2. Transições a partir do estado NOVA
+    // Transições a partir do estado NOVA
     if (atual == EstadoTarefa::NOVA)
     {
         if (novo == EstadoTarefa::PRONTA) return true;
@@ -34,31 +26,31 @@ bool validarTransicaoEstado(EstadoTarefa atual, EstadoTarefa novo, std::string& 
         return false;
     }
 
-    // 3. Transições a partir do estado PRONTA
+    // Transições a partir do estado PRONTA
     if (atual == EstadoTarefa::PRONTA)
     {
-        if (novo == EstadoTarefa::EXECUTANDO || novo == EstadoTarefa::ESPERANDO) return true;
-        mensagemErro = "Uma tarefa PRONTA so pode ir para EXECUTANDO (alocada na CPU) ou ESPERANDO (suspensa).";
+        if (novo == EstadoTarefa::EXECUTANDO || novo == EstadoTarefa::SUSPENSA) return true;
+        mensagemErro = "Uma tarefa PRONTA so pode ir para EXECUTANDO (alocada na CPU) ou SUSPENSA (suspensa).";
         return false;
     }
 
-    // 4. Transições a partir do estado EXECUTANDO
+    // Transições a partir do estado EXECUTANDO
     if (atual == EstadoTarefa::EXECUTANDO)
     {
-        if (novo == EstadoTarefa::PRONTA || novo == EstadoTarefa::ESPERANDO || novo == EstadoTarefa::TERMINADA) return true;
-        mensagemErro = "Uma tarefa EXECUTANDO so pode ir para PRONTA (preempcao), ESPERANDO (bloqueio) ou TERMINADA.";
+        if (novo == EstadoTarefa::PRONTA || novo == EstadoTarefa::SUSPENSA || novo == EstadoTarefa::TERMINADA) return true;
+        mensagemErro = "Uma tarefa EXECUTANDO so pode ir para PRONTA (preempcao), SUSPENSA (bloqueio) ou TERMINADA.";
         return false;
     }
 
-    // 5. Transições a partir do estado ESPERANDO (SUSPENSA)
-    if (atual == EstadoTarefa::ESPERANDO)
+    // Transições a partir do estado SUSPENSA (SUSPENSA)
+    if (atual == EstadoTarefa::SUSPENSA)
     {
         if (novo == EstadoTarefa::PRONTA) return true;
-        mensagemErro = "Uma tarefa ESPERANDO (suspensa) so pode voltar para o estado PRONTA.";
+        mensagemErro = "Uma tarefa SUSPENSA (suspensa) so pode voltar para o estado PRONTA.";
         return false;
     }
 
-    // 6. Transições a partir do estado TERMINADA
+    // Transições a partir do estado TERMINADA
     if (atual == EstadoTarefa::TERMINADA)
     {
         mensagemErro = "Uma tarefa TERMINADA nao pode mudar de estado diretamente. Use o botao Reset para reiniciar.";
@@ -207,8 +199,8 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
                 }
             }
 
-            const char* opcoesEstados[] = { "NOVA", "PRONTA", "EXECUTANDO", "ESPERANDO", "TERMINADA" };
-            EstadoTarefa mapaEstadosEnum[] = { EstadoTarefa::NOVA, EstadoTarefa::PRONTA, EstadoTarefa::EXECUTANDO, EstadoTarefa::ESPERANDO, EstadoTarefa::TERMINADA };
+            const char* opcoesEstados[] = { "NOVA", "PRONTA", "EXECUTANDO", "SUSPENSA", "TERMINADA" };
+            EstadoTarefa mapaEstadosEnum[] = { EstadoTarefa::NOVA, EstadoTarefa::PRONTA, EstadoTarefa::EXECUTANDO, EstadoTarefa::SUSPENSA, EstadoTarefa::TERMINADA };
 
             int itemSelecionadoIndex = 1; // Padrão PRONTA
             for (int e = 0; e < 5; e++)

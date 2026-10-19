@@ -242,17 +242,20 @@ void GerenciadorGUI::renderizar()
 
 		if (m_exibirTabela)
 		{
-			if (m_painelTabela.renderizar())
+			if (m_painelTabela.renderizar())	// Se for true houve alteracao em uma tarefa pelo menos
 			{
 				// Envia os dados alterados na GUI para o motor antes de recalcular
 
-				atualizarTarefasNaEngine();
 				if (m_tickAtual == 0)
 				{
+					// Se estive no inicio recalcula tudo, nao tem problema
+					atualizarTarefasNaEngine();
 					recalcularSimulacao();
 				}
 				else
 				{
+					// Se estiver no meio da simulacao
+					// Recalcula apenas daquele momento em diante
 					reescalonarAPartirDoTickAtual();
 				}
 			}
@@ -262,14 +265,41 @@ void GerenciadorGUI::renderizar()
 			m_painelGantt.renderizar();
 
 
-		// Checa se as tarefas mudaram OU se alguma configuração foi alterada na interface
-		// Deteccao e Reacao unificada de mudanças
-		bool tarefasMudaram = (numeroTarefas != static_cast<int>(m_tarefas.size()));
-		bool valoresMudaram = (m_quantidadeCPUs != m_quantidadeCPUsAnterior ||
+		// Checa se houve mudanca estrutural no arquivo
+
+		bool mudancaNoArquivo = (configAlteradaNoPainel && (caminhoArquivo != caminhoArquivoAnterior));
+
+		// Checa se algum atributo que mudou eh do tipo que exige resetar a simulacao
+
+		bool mudancaDeParametrosGlobais = (m_quantidadeCPUs != m_quantidadeCPUsAnterior ||
 			m_quantum != m_quantumAnterior ||
 			m_algoritmoSelecionado != m_algoritmoAnterior ||
 			m_modoExecucao != m_modoExecucaoAnterior ||
 			fonteDados != m_fonteDadosAnterior);
+
+		if (mudancaNoArquivo)
+		{
+			// Faz a troca dos caminhos: o novo vira antigo tambem
+			caminhoArquivoAnterior = caminhoArquivo;
+			// Carrega o arquivo, reseta o motor e zera m_tickAtual
+			carregarArquivoEncontrado();
+		}
+		else if (mudancaDeParametrosGlobais)	// Mudanca que afeta todas as tarefas
+		{
+			recalcularSimulacao();
+			// Zera os ticks
+			m_tickAtual = 0;
+
+			//Atualiza as variaveis que afetam todas as tarefas
+			m_quantidadeCPUsAnterior = m_quantidadeCPUs;
+			m_quantumAnterior = m_quantum;
+			m_algoritmoAnterior = m_algoritmoSelecionado;
+			m_modoExecucaoAnterior = m_modoExecucao;
+			m_fonteDadosAnterior = fonteDados;
+		}
+
+		/*
+		bool tarefasMudaram = (numeroTarefas != static_cast<int>(m_tarefas.size()));
 
 		if (configAlteradaNoPainel || tarefasMudaram || valoresMudaram)
 		{
@@ -294,7 +324,7 @@ void GerenciadorGUI::renderizar()
 			m_algoritmoAnterior = m_algoritmoSelecionado;
 			m_modoExecucaoAnterior = m_modoExecucao;
 			m_fonteDadosAnterior = fonteDados;
-		}
+		} */
 
 		if (m_solicitarExportacao)
 		{
@@ -470,8 +500,6 @@ void GerenciadorGUI::sincronizarComEngine()
 		SnapshotTick snapGUI;
 		snapGUI.tick = historicoPasso.tempo;
 
-		// N CPUS: ITERAR SOBRE A LISTA DE TAREFAS DA ENGINE E INSERIR TODOS OS IDS VALIDOS EM IDSEXECUTANDO
-
 		// Verifica cada cpu que estava sendo usada no instante em analise
 		for (size_t cpuj = 0; cpuj < historicoPasso.tarefasExecutadas.size(); cpuj++)
 		{
@@ -516,47 +544,27 @@ void GerenciadorGUI::sincronizarComEngine()
 			{
 				t.estado = EstadoTarefa::EXECUTANDO;
 			}
-			else if (tMotor.getProximaLiberacao() <= historicoPasso.tempo && tMotor.getTempoRestante() > 0)
-			{
-				t.estado = EstadoTarefa::PRONTA;
-			}
 			else if (tMotor.getEstado() == EstadoTarefa::TERMINADA || tMotor.getQuantidadeExecucoes() >= 10)
 			{
+
 				t.estado = EstadoTarefa::TERMINADA;
+			}
+			else if (tMotor.getEstado() == EstadoTarefa::SUSPENSA)
+			{
+				// Apenas fica SUSPENSA se foi suspensa EXPLICITAMENTE 
+				// Depois pode ser por algo do projeto B
+				// Por enquanto soh pelo usuario
+				t.estado = EstadoTarefa::SUSPENSA;
 			}
 			else
 			{
-				// Temporariamente alterado
-				//t.estado = EstadoTarefa::ESPERANDO;
-				t.estado = EstadoTarefa::PRONTA;
+				// Estado padrao das tarefas ativas fora da cpu
+				t.estado = EstadoTarefa::PRONTA; 
 			}
 
 			snapGUI.tarefas.push_back(t);
+			m_totalTicks = static_cast<int>(m_historico.size());
 		}
-
-		/*for (size_t d = 0; d < historicoPasso.idDeadlinesPerdidas.size(); d++)
-		{
-			EventoGantt novoEvento;
-			novoEvento.idTarefa = historicoPasso.idDeadlinesPerdidas[d];
-			novoEvento.tipo = TipoEvento::DEADLINE_STOURO;
-			snapGUI.eventos.push_back(novoEvento);
-		}
-
-		const std::vector<Tarefa>* tarefasDoMotor = &m_motor->getTarefas();*/
-
-		/*for (size_t taf = 0; taf < tarefasDoMotor->size(); taf++)
-		{
-			int ingresso = tarefasDoMotor->at(taf).getIngresso();
-			int periodo = tarefasDoMotor->at(taf).getPeriodo();
-			int tempoAtual = historicoPasso.tempo;
-			if (tempoAtual >= ingresso && (tempoAtual - ingresso) % periodo == 0)
-			{
-				EventoGantt novoEventoIngresso;
-				novoEventoIngresso.idTarefa = tarefasDoMotor->at(taf).getId();
-				novoEventoIngresso.tipo = TipoEvento::INGRESSO;
-				snapGUI.eventos.push_back(novoEventoIngresso);
-			}
-		}*/
 
 		snapGUI.eventos = historicoPasso.eventos;
 
@@ -608,21 +616,90 @@ void GerenciadorGUI::atualizarTarefasNaEngine()
 		return;
 	}
 
-	m_motor->limparTarefas();
-
-	for (size_t i = 0; i < m_tarefas.size(); i++)
+	if (m_tickAtual == 0) // SE ESTIVER NO INÍCIO: Limpa e recria a lista do motor
 	{
-		const TarefaGUI& tGUI = m_tarefas[i];
-		std::string corStringue = tGUI.cor;
-		Tarefa tReal(tGUI.id,
-			tGUI.duracao,
-			tGUI.periodo,
-			tGUI.prazo,
-			tGUI.ingresso,
-			tGUI.prioridade,				// Prioridade estatica (igual a zero)
-			corStringue);
+		m_motor->limparTarefas();
 
-		m_motor->addTarefa(tReal);
+		for (size_t i = 0; i < m_tarefas.size(); i++)
+		{
+			const TarefaGUI& tGUI = m_tarefas[i];
+			std::string corStringue = tGUI.cor;
+			Tarefa tReal(tGUI.id,
+				tGUI.duracao,
+				tGUI.periodo,
+				tGUI.prazo,
+				tGUI.ingresso,
+				tGUI.prioridade,
+				corStringue);
+
+			tReal.setEstado(tGUI.estado);
+			m_motor->addTarefa(tReal);
+		}
+	}
+	else // SE ESTIVER NO MEIO DA SIMULAÇÃO (TICK > 0): Repassa TODOS os parâmetros editados
+	{
+		auto& tarefasMotor = const_cast<std::vector<Tarefa>&>(m_motor->getTarefas());
+
+		// Atualiza tarefas existentes ou insere novas
+		for (size_t i = 0; i < m_tarefas.size(); i++)
+		{
+			const TarefaGUI& tGUI = m_tarefas[i];
+			bool encontrada = false;
+
+			for (size_t j = 0; j < tarefasMotor.size(); j++)
+			{
+				if (tarefasMotor[j].getId() == tGUI.id)
+				{
+					encontrada = true;
+					// Atualiza todos os parâmetros alterados na tabela
+					tarefasMotor[j].setIngresso(tGUI.ingresso);
+					tarefasMotor[j].setDuracao(tGUI.duracao);
+					tarefasMotor[j].setPeriodo(tGUI.periodo);
+					tarefasMotor[j].setPrazo(tGUI.prazo);
+					tarefasMotor[j].setEstado(tGUI.estado);
+					tarefasMotor[j].setCor(tGUI.cor);
+					break;
+				}
+			}
+
+			// Se for uma tarefa totalmente nova adicionada durante a simulação:
+			if (!encontrada)
+			{
+				Tarefa tNova(tGUI.id,
+					tGUI.duracao,
+					tGUI.periodo,
+					tGUI.prazo,
+					tGUI.ingresso,
+					tGUI.prioridade,
+					tGUI.cor);
+
+				tNova.setEstado(tGUI.estado);
+				m_motor->addTarefa(tNova);
+			}
+		}
+
+		// Remove do motor qualquer tarefa que tenha sido deletada na tabela
+		for (auto it = tarefasMotor.begin(); it != tarefasMotor.end(); )
+		{
+			bool aindaExiste = false;
+			for (size_t i = 0; i < m_tarefas.size(); i++)
+			{
+				if (m_tarefas[i].id == it->getId())
+				{
+					aindaExiste = true;
+					break;
+				}
+			}
+
+			if (!aindaExiste)
+			{
+				it = tarefasMotor.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
 	}
 }
 
@@ -633,6 +710,8 @@ void GerenciadorGUI::reescalonarAPartirDoTickAtual()
 
 	// Trunca o histórico da Engine do tick atual em diante
 	m_motor->resetaAPartirDe(m_tickAtual);
+
+	atualizarTarefasNaEngine();
 
 	// Garante que o algoritmo correto esteja definido
 	if (m_algoritmo == "RM")

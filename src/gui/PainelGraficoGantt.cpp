@@ -170,7 +170,7 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
                 //Desenho apenas da borda (ausencia de cor)
                 listaDesenhos->AddRect(posicaoMin, posicaoMax, IM_COL32(100, 100, 100, 100));
             }
-            else if (snapCerto->estado == EstadoTarefa::ESPERANDO)
+            else if (snapCerto->estado == EstadoTarefa::SUSPENSA)
             {
                 //Fundo preto
                 listaDesenhos->AddRectFilled(posicaoMin, posicaoMax, IM_COL32(0, 0, 0, 255));
@@ -496,7 +496,7 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
             {
                 DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), GRAY);
             }
-            else if (snapCerto->estado == EstadoTarefa::ESPERANDO)
+            else if (snapCerto->estado == EstadoTarefa::SUSPENSA)
             {
                 DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), BLACK);
 
@@ -630,12 +630,17 @@ void PainelGraficoGantt::renderizar()
         desenharAgulhaTempoAtual(listaDesenhos, origemQuadro, t_Ord.size());
 
         ImGui::Text("Legenda:");
-        ImGui::Text("Cada tarefa esta representada como uma linha no grafico.");
-        ImGui::Text("Cada tarefa possui uma cor diferente que eh visivel nos instantes em que a tarefa esta executando.");
-        ImGui::Text("Quando uma tarefa esta na fila de prontas e nao esta sendo executada, ela eh caracterizada pela ausencia de cor.");
-        ImGui::Text("Quando a tarefa esta suspensa, o retangulo que a representa fica preto e com hachuras na diagonal.");
-        ImGui::Text("Quando uma tarefa nova chega no sistema, existe uma seta verde na tarefa no instante que ela chegou.");
-
+        ImGui::Text("Tarefas: Cada linha do grafico, cada retangulo eh a tarefa em um tick.");
+        ImGui::Text("Ticks: Cada coluna do grafico.");
+        ImGui::Text("ESTADOS DAS TAREFAS:");
+        ImGui::Text("Executando: Representado pelo retangulo preenchido por uma cor.");
+        ImGui::Text("Pronta: Representado pelo retangulo com contorno mas nao preenchido. A tarefa suspensa na fila de prontas.");
+        ImGui::Text("Suspensa: Representado pelo retangulo preto e com hachuras na diagonal. No Projeto A nunca eh usada sem intervencao do usuario.");
+        ImGui::Text("EVENTOS DE ESCALONAMENTO:");
+        ImGui::Text("Ingresso: Quando uma tarefa entra no sistema pela primeira vez, aparece uma seta verde para baixo.");
+        ImGui::Text("Conclusao: Quando uma tarefa eh concluida definitivamente, aparece uma seta azul para cima.");
+        ImGui::Text("Estouro de Deadline: Quando uma tarefa perde seu prazo, aparece um X vermelho.");
+        ImGui::Text("Sorteio de Desempate: Quando ocorre um sorteio para definir qual tarefa sera executada, aparece um circulo amarelo!");
     }
     
     ImGui::End();

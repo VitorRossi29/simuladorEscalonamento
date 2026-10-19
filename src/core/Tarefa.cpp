@@ -91,12 +91,23 @@ void Tarefa::resetaTarefa()
 	snapshot.estado=EstadoTarefa::NOVA;
 }
 
-void Tarefa::preparaProximaExecucao()
+void Tarefa::preparaProximaExecucao(int tickAtual)
 {
+	// Reseta a duracao para proxima execucao
 	snapshot.tempoRestante=duracao;
-	snapshot.proximoDeadline+=periodo;
-	snapshot.proximaLiberacao+=periodo;
-	snapshot.estado=EstadoTarefa::NOVA;
+
+	// Impede acumulo de liberacoes do passado se a tarefa esteve suspensa
+	while (getProximaLiberacao() <= tickAtual)
+	{
+		snapshot.proximaLiberacao += periodo;
+		
+	}
+	
+	// Troquei para PRAZO mas verificar se esta certo
+	// snapshot.proximoDeadline += periodo;
+
+	// Atualizacao do proximo deadline
+	snapshot.proximoDeadline += prazo;
 }
 
 void Tarefa::geraNumeroAleatorio()
