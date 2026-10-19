@@ -7,6 +7,8 @@
 #include "../core/MotorSimulacao.hpp"
 #include "../reader/Leitor.hpp"
 
+#include <algorithm>
+
 #ifndef ImGuiCol_TabActive
 #define ImGuiCol_TabActive ImGuiCol_HeaderActive
 #endif
@@ -490,6 +492,11 @@ void GerenciadorGUI::sincronizarComEngine()
 
 		m_tarefas.push_back(tGUI);
 	}
+
+	//ordena as tarefas do menor para o maior id com funcao lambda
+	std::sort(m_tarefas.begin(), m_tarefas.end(), [](const TarefaGUI& a, const TarefaGUI& b) {
+		return a.id<b.id;
+	});
 
 	// Conversao do historico de ticks do motor para SnapshotTick
 	const auto& historicoEngine = m_motor->getHistorico();

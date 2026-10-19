@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include <cstring>
 
+
 // Função utilitária para converter a enum class em texto formatado para o ImGui
 const char* estadoParaString(EstadoTarefa estado)
 {
@@ -329,6 +330,48 @@ bool PainelTabelaTarefas::desenharFormularioInsercao()
 
         return true;
     }
+
+    if (ImGui::Button("Criar Tarefa Aleatoria"))
+    {
+        Tarefa tarefa(10);
+        bool igual=false;
+        for (TarefaGUI tarefasAtuais:*m_tarefasRef)
+        {
+            if(std::string(tarefasAtuais.cor)==tarefa.getCor())
+                igual=true;
+        }
+        
+        //garante que todas as tarefas aleatorias possuem cores diferentes das existentes
+        while(igual)
+        {
+            igual=false;
+            tarefa=Tarefa(10);
+            for (TarefaGUI tarefasAtuais:*m_tarefasRef)
+            {
+                if(std::string(tarefasAtuais.cor)==tarefa.getCor())
+                    igual=true;
+            }
+        }
+
+        //preenche a struct da GUI a partir da tarefa gerada
+        TarefaGUI tarefaNova;
+        tarefaNova.id=proximoId(); //usa a sequencia de IDs da GUI
+        tarefaNova.ingresso=tarefa.getIngresso();
+        tarefaNova.duracao=tarefa.getDuracao();
+        tarefaNova.periodo=tarefa.getPeriodo();
+        tarefaNova.prazo=tarefa.getPrazo();
+        tarefaNova.prioridade=tarefa.getPrioridade();
+        tarefaNova.lista_eventos="";
+        tarefaNova.estado=EstadoTarefa::PRONTA;
+
+        //copia a cor hex direto da tarefa para o char array da GUI
+        strncpy(tarefaNova.cor, tarefa.getCor().c_str(), sizeof(tarefaNova.cor)-1);
+        tarefaNova.cor[sizeof(tarefaNova.cor)-1]='\0';
+
+        m_tarefasRef->push_back(tarefaNova);
+
+        return true; // Retorna true para atualizar e recalcular a simulação
+    }
     return false;
 }
 
@@ -338,8 +381,18 @@ int PainelTabelaTarefas::proximoId()
     {
         return 1;
     }
-    
-    return (m_tarefasRef->back().id) + 1;
+
+    int maiorId=0;
+    for (const auto& tarefa:*m_tarefasRef)
+    {
+        if (tarefa.id>maiorId)
+        {
+            maiorId=tarefa.id;
+        }
+    }
+
+    return maiorId+1;
+    //return (m_tarefasRef->back().id) + 1;
 }
 
 void PainelTabelaTarefas::resetarFormulario()
