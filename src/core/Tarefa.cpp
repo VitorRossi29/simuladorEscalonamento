@@ -1,5 +1,5 @@
 #include "Tarefa.hpp"
-# include <random>
+#include <random>
 
 static int idPronto=0;
 
@@ -101,9 +101,9 @@ void Tarefa::preparaProximaExecucao()
 
 void Tarefa::geraNumeroAleatorio()
 {
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<int> dis(-2000000, 2000000);
-		numAleatorio=dis(gen);
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<int> dis(-2000000, 2000000);
+	numAleatorio=dis(gen);
 }
 

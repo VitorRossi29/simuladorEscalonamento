@@ -74,28 +74,28 @@ std::vector<Tarefa*> MotorSimulacao::achaProxima(int quantCPUs)
 Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPrioridade)
 {
 	//Historico historicoAtual;
-	//bool numIgual=true;
+	bool numIgual=true;
 
-	//for(Tarefa& t:tarefas) 
-	//{
-	//	t.geraNumeroAleatorio();
-	//}
+	for(Tarefa& t:tarefas) 
+	{
+		t.geraNumeroAleatorio();
+	}
 
-	//while(numIgual)
-	//{
-	//	numIgual=false;
-	//	for(Tarefa& t:tarefas) 
-	//	{
-	//		for(Tarefa& t2:tarefas)
-	//		{
-	//			if(&t!=&t2 && t.getNumAleatorio()==t2.getNumAleatorio()) //duas tarefas diferentes com num igual
-	//			{
-	//				t2.geraNumeroAleatorio();
-	//				numIgual=true;
-	//			}
-	//		}
-	//	}
-	//}
+	while(numIgual)
+	{
+		numIgual=false;
+		for(Tarefa& t:tarefas) 
+		{
+			for(Tarefa& t2:tarefas)
+			{
+				if(&t!=&t2 && t.getNumAleatorio()==t2.getNumAleatorio()) //duas tarefas diferentes com num igual
+				{
+					t2.geraNumeroAleatorio();
+					numIgual=true;
+				}
+			}
+		}
+	}
 
 	////nenhuma tarefa pronta para executar
 	//if(tarefasMaiorPrioridade.empty())
@@ -511,8 +511,20 @@ bool MotorSimulacao::desempate(const Tarefa* a, const Tarefa* b)
 	}
 
 	//condicao 5 aleatorio, precisa ter elemento grafico
+	EventoGantt desempate;
+	desempate.tipo=TipoEvento::SORTEIO_DESEMPATE;
+
 	if(a->getNumAleatorio()>b->getNumAleatorio())
+	{
+		desempate.idTarefa=a->getId();
+		//falta botar no historico
 		return true;
+	}
 	else
+	{
+		desempate.idTarefa=b->getId();
+		//falta botar no historico
 		return false;
+	}
+		
 }
