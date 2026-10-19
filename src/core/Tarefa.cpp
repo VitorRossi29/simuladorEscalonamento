@@ -127,3 +127,21 @@ void Tarefa::geraNumeroAleatorio()
 	numAleatorio=dis(gen);
 }
 
+void Tarefa::resetaCor()
+{
+	std::random_device rd; //gera uma semente utilizando o proprio hardware do sistema
+	std::mt19937 gen(rd()); //inicializa o motor com a semente criada
+
+	const char caracteres[]="0123456789ABCDEF";
+
+	std::string corAleatoria="";
+	std::uniform_int_distribution<int> disCaracter(0, 15);
+
+	for (int i=0;i<6;i++) 
+	{
+		corAleatoria+=caracteres[disCaracter(gen)];
+	}
+
+	cor=corAleatoria;
+}
+

@@ -473,16 +473,62 @@ void GerenciadorGUI::sincronizarComEngine()
 
 	if (m_motor == nullptr) return;
 
+	short int maiorID=0;
+
 	// Conversao das tarefas da Engine para TarefaGUI
 	for (size_t t = 0; t < m_motor->getTarefas().size(); t++)
 	{
 		Tarefa tReal = m_motor->getTarefas()[t];
 		TarefaGUI tGUI;
-		tGUI.id = tReal.getId();
+
+		int idAtual=tReal.getId();
+
+		//confere se tem algum id igual
+		for (const auto& jaAdicionada:m_tarefas)
+		{
+			if (jaAdicionada.id==idAtual)
+			{
+				//BOTAR MENSAGEM DE AVISO AQ
+				idAtual=maiorID+1;
+				break;
+			}
+		}
+
+		tGUI.id=idAtual;
+		if (tGUI.id>maiorID)
+		{
+			maiorID=tGUI.id;
+		}
+
+		std::string corAtual=tReal.getCor();
+
+		//impede duas tarefas de terem a mesma cor
+		bool corRepetida=true;
+		while (corRepetida)
+		{
+			corRepetida=false;
+			for (const auto& jaAdicionada:m_tarefas)
+			{
+				if (std::string(jaAdicionada.cor)==corAtual)
+				{
+					corRepetida=true;
+					break;
+				}
+			}
+
+			if (corRepetida)
+			{
+				//BOTAR MENSAGEM DE AVISO AQ
+				tReal.resetaCor();
+				corAtual=tReal.getCor();
+			}
+		}
+
 		tGUI.duracao = tReal.getDuracao();
 		tGUI.periodo = tReal.getPeriodo();
 		tGUI.prazo = tReal.getPrazo();
 		tGUI.ingresso = tReal.getIngresso();
+
 		strncpy(tGUI.cor, tReal.getCor().c_str(), sizeof(tGUI.cor) - 1);
 		tGUI.cor[sizeof(tGUI.cor) - 1] = '\0';
 
@@ -492,6 +538,8 @@ void GerenciadorGUI::sincronizarComEngine()
 
 		m_tarefas.push_back(tGUI);
 	}
+
+	
 
 	//ordena as tarefas do menor para o maior id com funcao lambda
 	std::sort(m_tarefas.begin(), m_tarefas.end(), [](const TarefaGUI& a, const TarefaGUI& b) {

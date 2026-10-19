@@ -54,6 +54,7 @@ public:
 	void resetaTarefa();
 	void preparaProximaExecucao(int tickAtual);
 	void geraNumeroAleatorio();
+	void resetaCor();
 
 	void operator--(int) { snapshot.tempoRestante--; }
 	void operator++(int) { snapshot.quantidadeExecucoes++; }
@@ -61,6 +62,7 @@ public:
 	void operator+=(int tempo) { snapshot.tempoEspera+=tempo; }
 
 	short int getId() const { return id; }
+	void setID(short int id) { this->id=id; }
 	int getDuracao() const { return duracao; }
 	int getPeriodo() const { return periodo; }
 	int getPrazo() const { return prazo; }
