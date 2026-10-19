@@ -37,12 +37,6 @@ std::vector<Tarefa*> MotorSimulacao::achaProxima(int quantCPUs)
 	//encontra a tarefa com maior prioridade que esteja pronta para executar
 	for (Tarefa& tarefa:tarefas)
 	{
-		// Se a tarefa foi suspensa manualmente (SUSPENSA) ou já terminou, ela não entra na fila
-		if (tarefa.getEstado() == EstadoTarefa::SUSPENSA || tarefa.getEstado() == EstadoTarefa::TERMINADA)
-		{
-			continue;
-		}
-		
 		//muda o estado da tarefa se estiver pronta para executar
 		if (tarefa.getProximaLiberacao()<=tickAtual && tarefa.getTempoRestante()>0)
 		{
@@ -79,7 +73,6 @@ std::vector<Tarefa*> MotorSimulacao::achaProxima(int quantCPUs)
 
 Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPrioridade)
 {
-	//Historico historicoAtual;
 	bool numIgual=true;
 
 	for(Tarefa& t:tarefas) 
@@ -212,8 +205,10 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 	//return historicoAtual;
 
 	Historico historicoAtual;
+	historicoAtual.eventos=std::move(eventosDesempatePendentes);
+	eventosDesempatePendentes.clear();
 
-	// Atribuição de CPUs
+	// 1. Atribuição de CPUs
 	if (tarefasMaiorPrioridade.empty())
 	{
 		for (int i = 0; i < quantCPUs; i++)
@@ -252,7 +247,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		}
 	}
 
-	// Atualização de Ciclo das Tarefas (RODA EM TODOS OS TICKS)
+	// 2. Atualização de Ciclo das Tarefas (RODA EM TODOS OS TICKS)
 	for (Tarefa& tarefa : tarefas)
 	{
 		// Ignora tarefas que já encerraram seu ciclo de vida
@@ -264,7 +259,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		// Verifica deadlines perdidas
 		if (tarefa.getProximoDeadline() == tickAtual && tarefa.getTempoRestante() > 0)
 		{
-			//tarefa.setEstado(EstadoTarefa::DEADLINE_PERDIDA);
+			tarefa.setEstado(EstadoTarefa::DEADLINE_PERDIDA);
 			historicoAtual.idDeadlinesPerdidas.push_back(tarefa.getId());
 
 			EventoGantt stouro;
@@ -302,7 +297,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		}
 	}
 
-	// Registro do Histórico e Eventos de Ingresso
+	// 3. Registro do Histórico e Eventos de Ingresso
 	historicoAtual.tempo = tickAtual;
 	for (const Tarefa& tarefa : tarefas)
 	{
@@ -389,7 +384,6 @@ bool MotorSimulacao::comparaPeriodo(const Tarefa& a, const Tarefa& b)
 void MotorSimulacao::executaTempoReal()
 {
 	bool executando=true;
-
 	if(algoritmoSelecionado==TipoAlgoritmo::RATE_MONOTONIC)
 	{
 		preparaSimulacaoRM();
@@ -399,40 +393,19 @@ void MotorSimulacao::executaTempoReal()
 	{
 		//executa um passo da simulacao
 		Historico historico=passoSimulacao(achaProxima(quantCPUs));
-
 		//verifica se todas as tarefas terminaram
-
-		bool todasTerminaram = true;
-		bool algumaTarefaExecutandoOuPronta = false;
-		bool existeIngressoNoFuturo = false;
-		
+		executando=false;
 		for(const Tarefa& tarefa:tarefas)
 		{
-			//Verifica se existe tarefa sem terminar e que nao superou o maximo de exevucoes
-			if(tarefa.getEstado()!=EstadoTarefa::TERMINADA && tarefa.getQuantidadeExecucoes() < 10)
+			if(tarefa.getEstado()!=EstadoTarefa::TERMINADA)
 			{
-				todasTerminaram = false;
-
-				//Verifica se existe alguma tarefa usando o cpu (pronta ou executando)
-				if (tarefa.getEstado() == EstadoTarefa::PRONTA || tarefa.getEstado() == EstadoTarefa::EXECUTANDO)
-				{
-					algumaTarefaExecutandoOuPronta = true;
-				}
-				// Precisamos verificar antes se alguma outra tarefa vai entrar no futuro
-				if (tarefa.getProximaLiberacao() >= getTickAtual())
-				{
-					existeIngressoNoFuturo = true;
-				}
+				executando=true;
+				break;
 			}
 		}
-
-		// Todos os casos em que a simulacao pode ter que acabar
-
-		if (todasTerminaram ||		//Normal se todas terminam acaba
-			(!existeIngressoNoFuturo && !algumaTarefaExecutandoOuPronta) ||		//Se o programa ficou preso com uma tarefa pendurada acaba tbm
-			(getTickAtual()>1000) )	//Se durar tempo de mais acaba
+		if(getTickAtual()>1000) //interrompe se demorar demais
 		{
-			executando = false;
+			executando=false;
 		}
 	}
 }
@@ -468,7 +441,7 @@ void MotorSimulacao::resetaAPartirDe(int tick)
 	}
 
 	//restaura o estado das tarefas usando o vetor salvo no historico daquele tick
-	tarefas=historicoTimeline[tick - 1].tarefas;
+	tarefas=historicoTimeline[tick].tarefas;
 
 	//remove do historico tudo o que esta depois do tick
 	historicoTimeline.erase(historicoTimeline.begin()+tick, historicoTimeline.end());
@@ -545,13 +518,13 @@ bool MotorSimulacao::desempate(const Tarefa* a, const Tarefa* b)
 	if(a->getNumAleatorio()>b->getNumAleatorio())
 	{
 		desempate.idTarefa=a->getId();
-		//falta botar no historico
+		eventosDesempatePendentes.push_back(desempate);
 		return true;
 	}
 	else
 	{
 		desempate.idTarefa=b->getId();
-		//falta botar no historico
+		eventosDesempatePendentes.push_back(desempate);
 		return false;
 	}
 		

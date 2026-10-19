@@ -18,6 +18,7 @@ private:
 	std::vector<CPU> todasCPUs;
 	int quantCPUs;
 	int quantum;
+	std::vector<EventoGantt> eventosDesempatePendentes;
 
 	enum class EstadoSimulacao
 	{

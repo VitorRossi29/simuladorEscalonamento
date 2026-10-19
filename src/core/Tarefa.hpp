@@ -7,7 +7,7 @@ enum class EstadoTarefa
     PRONTA,
     EXECUTANDO,
     SUSPENSA,
-    //DEADLINE_PERDIDA,
+    DEADLINE_PERDIDA,
 	TERMINADA
 };
 
