@@ -418,7 +418,7 @@ void MotorSimulacao::executaTempoReal()
 				break;
 			}
 		}
-		if(getTickAtual()>1000) //interrompe se demorar demais
+		if(getTickAtual()>10000) //interrompe se demorar demais
 		{
 			executando=false;
 		}
