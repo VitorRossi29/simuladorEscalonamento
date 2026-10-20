@@ -44,7 +44,7 @@ bool PainelConfiguracao::renderizar()
 	ImGui::Text("Algoritmo de Escalonamento:");
 
 	// Identificador local do estado do Radio Button
-	static int selecaoAlgoritmo = (m_algoritmo == "EDF") ? 1 : (m_algoritmo == "Outro" ? 2 : 0);
+	int selecaoAlgoritmo = (m_algoritmo == "EDF") ? 1 : (m_algoritmo == "Outro" ? 2 : 0);
 
 	if (ImGui::RadioButton("Rate Monotonic (RM)", &selecaoAlgoritmo, 0))
 	{
