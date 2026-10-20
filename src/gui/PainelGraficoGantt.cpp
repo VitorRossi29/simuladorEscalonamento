@@ -566,7 +566,29 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
 
             if (snapCerto->estado == EstadoTarefa::EXECUTANDO)
             {
-                Color cor = hexParaRaylibColor(t_Ord[i].cor, 1.0f);
+                std::string corHex=t_Ord[i].cor;
+
+                unsigned int r, g, b; 
+
+                if (!corHex.empty())
+                {
+                    //remove o # se precisar para evitar falha no sscanf
+                    const char* hexStr=corHex.c_str();
+                    if (hexStr[0]=='#') 
+                        hexStr++;
+
+                    //separa os 2 digitos de cada cor e atribui seu valor a cor relevante
+                    unsigned int hexVal=0;
+                    if (sscanf(hexStr, "%x", &hexVal)==1)
+                    {
+                        r=(hexVal>>16) & 0xFF; //2 digitos da esquerda
+                        g=(hexVal>>8) & 0xFF; //2 digitos do meio
+                        b=hexVal & 0xFF; //2 digitos da direita
+                    }
+                }
+
+                Color cor = { static_cast<unsigned char>(r), static_cast<unsigned char>(g), static_cast<unsigned char>(b), 255 }; 
+
                 DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), cor);
                 DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), BLACK);
             }
