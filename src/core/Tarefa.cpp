@@ -59,7 +59,7 @@ Tarefa::Tarefa(int ingressoMaximo)
 	//gera 6 caracteres e usa para o codigo hexadecimal da cor
 	const char caracteres[]="0123456789ABCDEF";
 
-	std::string corAleatoria="";
+	std::string corAleatoria="#";
 	std::uniform_int_distribution<int> disCaracter(0, 15);
 
 	for (int i=0;i<6;i++) 
