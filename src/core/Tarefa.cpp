@@ -110,12 +110,10 @@ void Tarefa::preparaProximaExecucao(int tickAtual)
 	{
 		snapshot.proximaLiberacao += periodo;
 	}
-	
-	// Troquei para PRAZO mas verificar se esta certo
-	// snapshot.proximoDeadline += periodo;
 
 	// Atualizacao do proximo deadline
-	snapshot.proximoDeadline += prazo;
+	//snapshot.proximoDeadline += prazo+getQuantidadeExecucoes();
+	snapshot.proximoDeadline=snapshot.proximaLiberacao+prazo;
 }
 
 void Tarefa::geraNumeroAleatorio()
