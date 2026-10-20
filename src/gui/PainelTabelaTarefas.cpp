@@ -19,7 +19,12 @@ const char* estadoParaString(EstadoTarefa estado)
 // Retorna verdadeiro se a transição entre os estados for semanticamente válida
 bool validarTransicaoEstado(EstadoTarefa atual, EstadoTarefa novo, std::string& mensagemErro)
 {
-    // Transições a partir do estado NOVA
+    if (novo == EstadoTarefa::DEADLINE_PERDIDA)
+    {
+        mensagemErro = "DEADLINE_PERDIDA eh um evento automatico do sistema e nao pode ser definido manualmente.";
+        return false;
+    }
+
     if (atual == EstadoTarefa::NOVA)
     {
         if (novo == EstadoTarefa::PRONTA) return true;
@@ -27,31 +32,27 @@ bool validarTransicaoEstado(EstadoTarefa atual, EstadoTarefa novo, std::string& 
         return false;
     }
 
-    // Transições a partir do estado PRONTA
     if (atual == EstadoTarefa::PRONTA)
     {
         if (novo == EstadoTarefa::EXECUTANDO || novo == EstadoTarefa::SUSPENSA) return true;
-        mensagemErro = "Uma tarefa PRONTA so pode ir para EXECUTANDO (alocada na CPU) ou SUSPENSA (suspensa).";
+        mensagemErro = "Uma tarefa PRONTA so pode ir para EXECUTANDO (alocada na CPU) ou SUSPENSA.";
         return false;
     }
 
-    // Transições a partir do estado EXECUTANDO
     if (atual == EstadoTarefa::EXECUTANDO)
     {
         if (novo == EstadoTarefa::PRONTA || novo == EstadoTarefa::SUSPENSA || novo == EstadoTarefa::TERMINADA) return true;
-        mensagemErro = "Uma tarefa EXECUTANDO so pode ir para PRONTA (preempcao), SUSPENSA (bloqueio) ou TERMINADA.";
+        mensagemErro = "Uma tarefa EXECUTANDO so pode ir para PRONTA (preempcao), SUSPENSA ou TERMINADA.";
         return false;
     }
 
-    // Transições a partir do estado SUSPENSA (SUSPENSA)
-    if (atual == EstadoTarefa::SUSPENSA)
+    if (atual == EstadoTarefa::SUSPENSA) // ALTERAÇÃO: Validação para o estado SUSPENSA
     {
         if (novo == EstadoTarefa::PRONTA) return true;
-        mensagemErro = "Uma tarefa SUSPENSA (suspensa) so pode voltar para o estado PRONTA.";
+        mensagemErro = "Uma tarefa SUSPENSA so pode voltar para o estado PRONTA.";
         return false;
     }
 
-    // Transições a partir do estado TERMINADA
     if (atual == EstadoTarefa::TERMINADA)
     {
         mensagemErro = "Uma tarefa TERMINADA nao pode mudar de estado diretamente. Use o botao Reset para reiniciar.";

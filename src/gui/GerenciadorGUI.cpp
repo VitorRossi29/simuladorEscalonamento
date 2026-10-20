@@ -473,7 +473,7 @@ void GerenciadorGUI::sincronizarComEngine()
 
 	if (m_motor == nullptr) return;
 
-	short int maiorID=0;
+	short int maiorID = 0;
 
 	// Conversao das tarefas da Engine para TarefaGUI
 	for (size_t t = 0; t < m_motor->getTarefas().size(); t++)
@@ -481,37 +481,37 @@ void GerenciadorGUI::sincronizarComEngine()
 		Tarefa tReal = m_motor->getTarefas()[t];
 		TarefaGUI tGUI;
 
-		int idAtual=tReal.getId();
+		int idAtual = tReal.getId();
 
 		//confere se tem algum id igual
-		for (const auto& jaAdicionada:m_tarefas)
+		for (const auto& jaAdicionada : m_tarefas)
 		{
-			if (jaAdicionada.id==idAtual)
+			if (jaAdicionada.id == idAtual)
 			{
 				//BOTAR MENSAGEM DE AVISO AQ
-				idAtual=maiorID+1;
+				idAtual = maiorID + 1;
 				break;
 			}
 		}
 
-		tGUI.id=idAtual;
-		if (tGUI.id>maiorID)
+		tGUI.id = idAtual;
+		if (tGUI.id > maiorID)
 		{
-			maiorID=tGUI.id;
+			maiorID = tGUI.id;
 		}
 
-		std::string corAtual=tReal.getCor();
+		std::string corAtual = tReal.getCor();
 
 		//impede duas tarefas de terem a mesma cor
-		bool corRepetida=true;
+		bool corRepetida = true;
 		while (corRepetida)
 		{
-			corRepetida=false;
-			for (const auto& jaAdicionada:m_tarefas)
+			corRepetida = false;
+			for (const auto& jaAdicionada : m_tarefas)
 			{
-				if (std::string(jaAdicionada.cor)==corAtual)
+				if (std::string(jaAdicionada.cor) == corAtual)
 				{
-					corRepetida=true;
+					corRepetida = true;
 					break;
 				}
 			}
@@ -520,7 +520,7 @@ void GerenciadorGUI::sincronizarComEngine()
 			{
 				//BOTAR MENSAGEM DE AVISO AQ
 				tReal.resetaCor();
-				corAtual=tReal.getCor();
+				corAtual = tReal.getCor();
 			}
 		}
 
@@ -539,12 +539,10 @@ void GerenciadorGUI::sincronizarComEngine()
 		m_tarefas.push_back(tGUI);
 	}
 
-	
-
 	//ordena as tarefas do menor para o maior id com funcao lambda
 	std::sort(m_tarefas.begin(), m_tarefas.end(), [](const TarefaGUI& a, const TarefaGUI& b) {
-		return a.id<b.id;
-	});
+		return a.id < b.id;
+		});
 
 	// Conversao do historico de ticks do motor para SnapshotTick
 	const auto& historicoEngine = m_motor->getHistorico();
@@ -565,7 +563,7 @@ void GerenciadorGUI::sincronizarComEngine()
 		}
 
 		// Aqui tem a parte que adquirimos as informacoes da TCB das tarefas
-		for (size_t s = 0; s <historicoPasso.tarefas.size(); s++)
+		for (size_t s = 0; s < historicoPasso.tarefas.size(); s++)
 		{
 			Tarefa tMotor = historicoPasso.tarefas[s];
 
@@ -601,20 +599,19 @@ void GerenciadorGUI::sincronizarComEngine()
 			}
 			else if (tMotor.getEstado() == EstadoTarefa::TERMINADA || tMotor.getQuantidadeExecucoes() >= 10)
 			{
-
 				t.estado = EstadoTarefa::TERMINADA;
 			}
-			else if (tMotor.getEstado() == EstadoTarefa::SUSPENSA)
+			else if (tMotor.getProximaLiberacao() <= historicoPasso.tempo && tMotor.getTempoRestante() > 0 && tMotor.getEstado() != EstadoTarefa::SUSPENSA)
 			{
-				// Apenas fica SUSPENSA se foi suspensa EXPLICITAMENTE 
-				// Depois pode ser por algo do projeto B
-				// Por enquanto soh pelo usuario
-				t.estado = EstadoTarefa::SUSPENSA;
+				// ALTERAÇÃO/CORREÇÃO: A tarefa só entra na Fila de Prontas (PRONTA) quando seu período chegou
+				// (proximaLiberacao <= tempo) e ela possui duração restante a ser executada na instância.
+				t.estado = EstadoTarefa::PRONTA;
 			}
 			else
 			{
-				// Estado padrao das tarefas ativas fora da cpu
-				t.estado = EstadoTarefa::PRONTA; 
+				// ALTERAÇÃO/CORREÇÃO: Se a tarefa encerrou sua execução da instância e aguarda a chegada do próximo período
+				// (ou se foi suspensa manualmente pelo usuário), seu estado operacional é SUSPENSA.
+				t.estado = EstadoTarefa::SUSPENSA;
 			}
 
 			snapGUI.tarefas.push_back(t);

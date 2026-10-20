@@ -83,6 +83,23 @@ void PainelGraficoGantt::desenharAgulhaTempoAtual(ImDrawList* listaDesenhos, ImV
 void PainelGraficoGantt::desenharEixoYELinhasBase(ImDrawList* listaDesenhos, ImVec2 inicio, const std::vector<TarefaGUI>& tarefasOrdenadas)
 {
     int totalTicks = static_cast<int>(m_historicoRef->size());
+
+    // ALTERAÇÃO/CORREÇÃO: Desenha os rótulos das linhas dedicadas das CPUs no eixo Y (acima da lista de tarefas)
+    if (m_qtdeCpusRef != nullptr)
+    {
+        int totalCpus = *m_qtdeCpusRef;
+        for (int c = 0; c < totalCpus; c++)
+        {
+            int idCpu = c + 1;
+            // Posição Y da linha da CPU correspondente
+            float yCentro = inicio.y + m_margemTopo - 18.0f - (c * 22.0f);
+            std::string labelCpu = "CPU " + std::to_string(idCpu);
+
+            ImVec2 posTexto(inicio.x + 10, yCentro - 6.0f);
+            listaDesenhos->AddText(posTexto, IM_COL32(180, 220, 180, 255), labelCpu.c_str());
+        }
+    }
+
     for (size_t i = 0; i < tarefasOrdenadas.size(); i++)
     {
         //Calculo da posicao Y da linha i
@@ -282,7 +299,7 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
     size_t limite;
 
     // Define até qual tick o gráfico deve ser revelado na interface no modo passo a passo
-    // E defube o limite como o ultimo tick no modo instantaneo
+    // E define o limite como o último tick no modo instantâneo
     if (!(*m_modoExecucao))
     {
         int tickLimite = *m_tickAtualRef;
@@ -299,14 +316,64 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
     for (size_t t = 0; t < limite; t++)
     {
         const SnapshotTick& snap = (*m_historicoRef)[t];
-        
-        // Laco interno para percorrer os eventos
 
+        // Detecção e Desenho dos Sinais de Mudança de Estado da CPU (Ligou / Desligou)
+        for (size_t c = 0; c < snap.cpus.size(); c++)
+        {
+            int idCpu = snap.cpus[c].idCpu;
+            bool executandoAgora = (snap.cpus[c].idTarefaExecutando != -1);
+            bool executandoAntes = false;
+
+            if (t > 0)
+            {
+                const SnapshotTick& snapAnterior = (*m_historicoRef)[t - 1];
+                for (const auto& cpuAnt : snapAnterior.cpus)
+                {
+                    if (cpuAnt.idCpu == idCpu)
+                    {
+                        executandoAntes = (cpuAnt.idTarefaExecutando != -1);
+                        break;
+                    }
+                }
+            }
+
+            bool ligou = (!executandoAntes && executandoAgora);
+            bool desligou = (executandoAntes && !executandoAgora);
+
+            if (ligou || desligou)
+            {
+                float xMinCell = inicio.x + m_margemEsquerda + (t * m_larguraTick);
+                float raio = 9.0f;
+
+                // ALTERAÇÃO/CORREÇÃO (Deslocamento nas Bordas):
+                // LIGOU: Posicionado no lado esquerdo do tick (início da execução)
+                // DESLIGOU: Posicionado no lado direito do tick (término da execução/início do desligamento)
+                float xCentro = ligou ? (xMinCell + 14.0f) : (xMinCell + m_larguraTick - 14.0f);
+
+                int idxCpu = idCpu - 1;
+                float yCentro = inicio.y + m_margemTopo - 18.0f - (idxCpu * 22.0f);
+
+                ImVec2 centro(xCentro, yCentro);
+                ImU32 corCirculo = ligou ? IM_COL32(0, 180, 0, 255) : IM_COL32(220, 0, 0, 255);
+
+                // Desenha o círculo do sinal
+                listaDesenhos->AddCircleFilled(centro, raio, corCirculo);
+                listaDesenhos->AddCircle(centro, raio, IM_COL32(0, 0, 0, 255), 0, 1.5f); // Borda preta
+
+                // Desenha o número do ID da CPU centralizado
+                std::string idTxt = std::to_string(idCpu);
+                ImVec2 tamTexto = ImGui::CalcTextSize(idTxt.c_str());
+                ImVec2 posTexto(centro.x - (tamTexto.x / 2.0f), centro.y - (tamTexto.y / 2.0f));
+                listaDesenhos->AddText(posTexto, IM_COL32(255, 255, 255, 255), idTxt.c_str());
+            }
+        }
+
+        // Laço interno para percorrer os eventos das tarefas
         for (size_t e = 0; e < snap.eventos.size(); e++)
         {
             const EventoGantt& eventoDaVez = snap.eventos[e];
 
-            // Buaca a linha i do eixo Y da tarefa
+            // Busca a linha i do eixo Y da tarefa
             int linhaIndex = -1;
             for (size_t i = 0; i < tarefasOrdenadas.size(); i++)
             {
@@ -317,9 +384,9 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
                 }
             }
 
-            if (linhaIndex == -1) continue; // Tarefa nao encontrada no vetor
+            if (linhaIndex == -1) continue; // Tarefa não encontrada no vetor
 
-            // Calculo da posicao X e Y da celula da tarefa no tick t
+            // Cálculo da posição X e Y da célula da tarefa no tick t
             float xMin = inicio.x + m_margemEsquerda + (t * m_larguraTick);
             float yMin = inicio.y + m_margemTopo + (linhaIndex * m_alturaLinha);
 
@@ -328,52 +395,50 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
 
             if (eventoDaVez.tipo == TipoEvento::INGRESSO)
             {
-                int tamanhoTriangulo = 16;
-                // Calcular o centro e as dimensões do pequeno triangulo
-                float xMid = xMin + (m_larguraTick / 2.0f);
-                float yTopo = yMin + tamanhoTriangulo; // Altura maior no meio da celula
-                float yBase = yMin; // Base 8 pixels abaixo
+                // Posiciona a seta verde na BORDA ESQUERDA do tick (início do intervalo de tempo t)
+                int tamanhoTriangulo = 8;
+                float xEsq = xMin;                   // Alinhado exatamente na borda vertical esquerda do tick
+                float yTopo = yMin + 12.0f;          // Ponta do triângulo apontando para baixo dentro da célula
+                float yBase = yMin;                  // Base alinhada na linha superior da célula
 
-                // Definicao das pontas do triangulo
-                ImVec2 pTopo(xMid, yTopo);
-                ImVec2 pBaseR(xMid + tamanhoTriangulo, yBase);
-                ImVec2 pBaseL(xMid - tamanhoTriangulo, yBase);
+                // Definição das pontas do triângulo
+                ImVec2 pTopo(xEsq, yTopo);
+                ImVec2 pBaseR(xEsq + tamanhoTriangulo, yBase);
+                ImVec2 pBaseL(xEsq - tamanhoTriangulo, yBase);
 
-                // Desenha o triangulo verde apontando para baixo
+                // Desenha o triângulo verde apontando para baixo na borda esquerda
                 listaDesenhos->AddTriangleFilled(pTopo, pBaseL, pBaseR, IM_COL32(0, 255, 0, 255));
             }
             if (eventoDaVez.tipo == TipoEvento::DEADLINE_STOURO)
             {
-                //Desenha um x vermelho
-                listaDesenhos->AddLine (pMin, pMax, IM_COL32(255, 0, 0, 255), 2.0f);
-                listaDesenhos->AddLine (ImVec2(pMin.x + m_larguraTick, pMin.y), ImVec2(pMax.x - m_larguraTick, pMax.y), IM_COL32(255, 0, 0, 255), 2.0f);
+                // Desenha um X vermelho
+                listaDesenhos->AddLine(pMin, pMax, IM_COL32(255, 0, 0, 255), 2.0f);
+                listaDesenhos->AddLine(ImVec2(pMin.x + m_larguraTick, pMin.y), ImVec2(pMax.x - m_larguraTick, pMax.y), IM_COL32(255, 0, 0, 255), 2.0f);
             }
             if (eventoDaVez.tipo == TipoEvento::SORTEIO_DESEMPATE)
             {
-                // Desenha um circulo amarelo
+                // Desenha um círculo amarelo
                 ImVec2 centro(pMin.x + (m_larguraTick / 2.0f), pMin.y + (m_alturaLinha / 2.0f));
                 listaDesenhos->AddCircleFilled(centro, 4.0f, IM_COL32(255, 215, 0, 255));
             }
             if (eventoDaVez.tipo == TipoEvento::CONCLUSAO)
             {
-                int tamanhoTriangulo = 16;
-                // Calcular o centro e as dimensões do pequeno triangulo
-                float xMid = xMin + (m_larguraTick / 2.0f);
-                float yTopo = yMin - tamanhoTriangulo; // Ao contrario para o triangulo apontar para cima
-                float yBase = yMin; // Base 8 pixels abaixo
+                // Posiciona a seta azul na BORDA DIREITA do tick (término do intervalo de tempo t)
+                int tamanhoTriangulo = 8;
+                float xDir = xMin + m_larguraTick;   // Alinhado exatamente na borda vertical direita do tick
+                float yTopo = yMin - 12.0f;          // Ponta do triângulo apontando para cima acima da célula
+                float yBase = yMin;                  // Base alinhada na linha superior da célula
 
-                // Definicao das pontas do triangulo
-                ImVec2 pTopo(xMid, yTopo);
-                ImVec2 pBaseR(xMid + tamanhoTriangulo, yBase);
-                ImVec2 pBaseL(xMid - tamanhoTriangulo, yBase);
+                // Definição das pontas do triângulo
+                ImVec2 pTopo(xDir, yTopo);
+                ImVec2 pBaseR(xDir + tamanhoTriangulo, yBase);
+                ImVec2 pBaseL(xDir - tamanhoTriangulo, yBase);
 
-                // Desenha o triangulo azul apontando para cima
+                // Desenha o triângulo azul apontando para cima na borda direita
                 listaDesenhos->AddTriangleFilled(pTopo, pBaseL, pBaseR, IM_COL32(0, 0, 255, 255));
             }
         }
-
     }
-
 }
 
 PainelGraficoGantt::PainelGraficoGantt(const std::vector<TarefaGUI>* tarefas, const std::vector<SnapshotTick>* historico, 
@@ -434,7 +499,19 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
         DrawLineEx(Vector2{ x, yTop }, Vector2{ x, yBottom }, 1.0f, LIGHTGRAY);
     }
 
-    // Eixo Y e Linhas Horizontais
+    // Eixo Y e Linhas Horizontais (CPUs e Tarefas)
+    if (m_qtdeCpusRef != nullptr)
+    {
+        int totalCpus = *m_qtdeCpusRef;
+        for (int c = 0; c < totalCpus; c++)
+        {
+            int idCpu = c + 1;
+            float yCentro = origemY + m_margemTopo - 18.0f - (c * 22.0f);
+            std::string labelCpu = "CPU " + std::to_string(idCpu);
+            DrawText(labelCpu.c_str(), static_cast<int>(origemX + 10.0f), static_cast<int>(yCentro - 6.0f), 14, DARKGRAY);
+        }
+    }
+
     for (size_t i = 0; i < t_Ord.size(); i++)
     {
         float y = origemY + m_margemTopo + (i * m_alturaLinha);
@@ -448,21 +525,16 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
 
     size_t limite;
 
-    // Define até qual tick o gráfico deve ser revelado na interface no modo Passo a Passo
-    // Revela o grafico inteiro no modo instantaneo
     if ((*m_modoExecucao) == 0)
     {
         int tickLimite = *m_tickAtualRef;
         size_t totalTicksDisponiveis = m_historicoRef->size();
-
-        // Garante que não ultrapassará o tamanho do vetor do histórico
         limite = std::min(static_cast<size_t>(tickLimite + 1), totalTicksDisponiveis);
     }
     else
     {
         limite = m_historicoRef->size();
     }
-    
 
     // Blocos de Execução e Hachura
     for (int t = 0; t < limite; t++)
@@ -521,11 +593,57 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
         }
     }
 
-    // Desenho dos Eventos
+    // Desenho dos Eventos e Sinais da CPU na Exportação Raylib
     for (int t = 0; t < limite; t++)
     {
         const SnapshotTick& snap = (*m_historicoRef)[t];
 
+        for (size_t c = 0; c < snap.cpus.size(); c++)
+        {
+            int idCpu = snap.cpus[c].idCpu;
+            bool executandoAgora = (snap.cpus[c].idTarefaExecutando != -1);
+            bool executandoAntes = false;
+
+            if (t > 0)
+            {
+                const SnapshotTick& snapAnterior = (*m_historicoRef)[t - 1];
+                for (const auto& cpuAnt : snapAnterior.cpus)
+                {
+                    if (cpuAnt.idCpu == idCpu)
+                    {
+                        executandoAntes = (cpuAnt.idTarefaExecutando != -1);
+                        break;
+                    }
+                }
+            }
+
+            bool ligou = (!executandoAntes && executandoAgora);
+            bool desligou = (executandoAntes && !executandoAgora);
+
+            if (ligou || desligou)
+            {
+                float xCell = origemX + m_margemEsquerda + (t * m_larguraTick);
+                float raio = 9.0f;
+
+                // ALTERAÇÃO/CORREÇÃO (Deslocamento nas Bordas - Raylib):
+                float xCentro = ligou ? (xCell + 14.0f) : (xCell + m_larguraTick - 14.0f);
+
+                int idxCpu = idCpu - 1;
+                float yCentro = origemY + m_margemTopo - 18.0f - (idxCpu * 22.0f);
+
+                Vector2 centro{ xCentro, yCentro };
+                Color corCirculo = ligou ? Color{ 0, 180, 0, 255 } : Color{ 220, 0, 0, 255 };
+
+                DrawCircleV(centro, raio, corCirculo);
+                DrawCircleLines(static_cast<int>(xCentro), static_cast<int>(yCentro), raio, BLACK);
+
+                std::string idTxt = std::to_string(idCpu);
+                int larguraTexto = MeasureText(idTxt.c_str(), 12);
+                DrawText(idTxt.c_str(), static_cast<int>(xCentro - (larguraTexto / 2.0f)), static_cast<int>(yCentro - 5.0f), 12, WHITE);
+            }
+        }
+
+        // Eventos das tarefas
         for (size_t e = 0; e < snap.eventos.size(); e++)
         {
             const EventoGantt& ev = snap.eventos[e];
@@ -547,10 +665,10 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
 
             if (ev.tipo == TipoEvento::INGRESSO)
             {
-                Vector2 p1{ x, y };
-                Vector2 p2{ x + m_larguraTick, y };
-                Vector2 p3{ x + (m_larguraTick / 2.0f), y + 8.0f };
-                // A Raylib exige vértices em ordem anti-horária para preenchimento
+                float xEsq = x;
+                Vector2 p1{ xEsq - 8.0f, y };
+                Vector2 p2{ xEsq + 8.0f, y };
+                Vector2 p3{ xEsq, y + 10.0f };
                 DrawTriangle(p1, p3, p2, GREEN);
             }
             else if (ev.tipo == TipoEvento::DEADLINE_STOURO)
@@ -570,11 +688,12 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
             }
             else if (ev.tipo == TipoEvento::CONCLUSAO)
             {
-                Vector2 p1{ x, y };
-                Vector2 p2{ x + m_larguraTick, y };
-                Vector2 p3{ x + (m_larguraTick / 2.0f), y - 16.0f };
-                // A Raylib exige vértices em ordem anti-horária para preenchimento
-                DrawTriangle(p1, p3, p2, BLUE);
+                float xDir = x + m_larguraTick;
+                Vector2 p1{ xDir - 8.0f, y };
+                Vector2 p2{ xDir + 8.0f, y };
+                Vector2 p3{ xDir, y - 10.0f };
+
+                DrawTriangle(p1, p2, p3, BLUE);
             }
         }
     }
@@ -585,15 +704,11 @@ void PainelGraficoGantt::renderizar()
     ImVec2 posicao = ImGui::GetMainViewport()->Pos;
     ImVec2 tamanho = ImGui::GetMainViewport()->Size;
 
-    ImGui::SetNextWindowPos (posicao);
-    ImGui::SetNextWindowSize (tamanho);
+    ImGui::SetNextWindowPos(posicao);
+    ImGui::SetNextWindowSize(tamanho);
 
     ImVec2 origemQuadro;
     ImDrawList* listaDesenhos;
-
-    /*ImGuiWindowFlags_NoTitleBar = remove a barra de título superior,
-        ImGuiWindowFlags_NoResize / ImGuiWindowFlags_NoMove = impede o usuário de arrastar o fundo,
-        ImGuiWindowFlags_NoBringToFrontOnFocus = garante que o fundo fique sempre atrás dos painéis de controle*/
 
     if (ImGui::Begin("Grafico de Gantt Multi-CPU", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus))
     {
@@ -607,7 +722,11 @@ void PainelGraficoGantt::renderizar()
             ImGui::End();
             return;
         }
-        
+
+        // ALTERAÇÃO/CORREÇÃO: Reajusta dinamicamente a margem superior com base no número de CPUs ativas
+        int qtdeCpus = (m_qtdeCpusRef != nullptr) ? *m_qtdeCpusRef : 1;
+        m_margemTopo = std::max(70.0f, 30.0f + (qtdeCpus * 22.0f));
+
         // Ordenacao decrescente dos IDs para posicionamento vertical no Eixo Y
         std::vector<TarefaGUI> t_Ord = *m_tarefasRef;
 
@@ -634,14 +753,17 @@ void PainelGraficoGantt::renderizar()
         ImGui::Text("Ticks: Cada coluna do grafico.");
         ImGui::Text("ESTADOS DAS TAREFAS:");
         ImGui::Text("Executando: Representado pelo retangulo preenchido por uma cor.");
-        ImGui::Text("Pronta: Representado pelo retangulo com contorno mas nao preenchido. A tarefa suspensa na fila de prontas.");
-        ImGui::Text("Suspensa: Representado pelo retangulo preto e com hachuras na diagonal. No Projeto A nunca eh usada sem intervencao do usuario.");
+        ImGui::Text("Pronta: Representado pelo retangulo com contorno mas nao preenchido. A tarefa quando esta pronta para executar mas nao esta executando");
+        ImGui::Text("Suspensa: Representado pelo retangulo preto e com hachuras na diagonal. Quando a tarefa ainda nao esta pronta para executar.");
         ImGui::Text("EVENTOS DE ESCALONAMENTO:");
-        ImGui::Text("Ingresso: Quando uma tarefa entra no sistema pela primeira vez, aparece uma seta verde para baixo.");
-        ImGui::Text("Conclusao: Quando uma tarefa eh concluida definitivamente, aparece uma seta azul para cima.");
+        ImGui::Text("Ingresso: Quando uma tarefa entra na fila de prontos, aparece uma seta verde para baixo");
+        ImGui::Text("Conclusao: Quando uma tarefa conclui um ciclo de execucao, aparece uma seta azul para cima.");
         ImGui::Text("Estouro de Deadline: Quando uma tarefa perde seu prazo, aparece um X vermelho.");
         ImGui::Text("Sorteio de Desempate: Quando ocorre um sorteio para definir qual tarefa sera executada, aparece um circulo amarelo!");
+        ImGui::Text("SINAIS DE ESTADO DA CPU:");
+        ImGui::Text("Circulo Verde com ID na linha da CPU: A CPU indicada pelo numero entrou no estado EXECUTANDO (LIGOU) neste tick.");
+        ImGui::Text("Circulo Vermelho com ID na linha da CPU: A CPU indicada pelo numero ficou sem tarefa e passou para o estado DESLIGADA neste tick.");
     }
-    
+
     ImGui::End();
 }

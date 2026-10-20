@@ -70,27 +70,26 @@ std::vector<Tarefa*> MotorSimulacao::achaProxima(int quantCPUs)
 
 	return tarefasProntas;
 }
-
 Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPrioridade)
 {
-	bool numIgual=true;
+	bool numIgual = true;
 
-	for(Tarefa& t:tarefas) 
+	for (Tarefa& t : tarefas)
 	{
 		t.geraNumeroAleatorio();
 	}
 
-	while(numIgual)
+	while (numIgual)
 	{
-		numIgual=false;
-		for(Tarefa& t:tarefas) 
+		numIgual = false;
+		for (Tarefa& t : tarefas)
 		{
-			for(Tarefa& t2:tarefas)
+			for (Tarefa& t2 : tarefas)
 			{
-				if(&t!=&t2 && t.getNumAleatorio()==t2.getNumAleatorio()) //duas tarefas diferentes com num igual
+				if (&t != &t2 && t.getNumAleatorio() == t2.getNumAleatorio()) //duas tarefas diferentes com num igual
 				{
 					t2.geraNumeroAleatorio();
-					numIgual=true;
+					numIgual = true;
 				}
 			}
 		}
@@ -205,8 +204,23 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 	//return historicoAtual;
 
 	Historico historicoAtual;
-	historicoAtual.eventos=std::move(eventosDesempatePendentes);
+	historicoAtual.eventos = std::move(eventosDesempatePendentes);
 	eventosDesempatePendentes.clear();
+
+	// ALTERAÇÃO/CORREÇÃO (Seta Verde - Registro Antecipado):
+	// O registro do ingresso (seta verde) DEVE ser feito AQUI, no início do tick, ANTES que a CPU execute.
+	// Se a tarefa tiver duração 1, ela será concluída no mesmo tick e a função preparaProximaExecucao()
+	// alterará a proximaLiberacao. Registrar o ingresso aqui garante que tarefas com C=1 recebam a seta verde.
+	for (const Tarefa& tarefa : tarefas)
+	{
+		if (tarefa.getEstado() != EstadoTarefa::TERMINADA && tarefa.getProximaLiberacao() == tickAtual)
+		{
+			EventoGantt ingresso;
+			ingresso.tipo = TipoEvento::INGRESSO;
+			ingresso.idTarefa = tarefa.getId();
+			historicoAtual.eventos.push_back(ingresso);
+		}
+	}
 
 	// 1. Atribuição de CPUs
 	if (tarefasMaiorPrioridade.empty())
@@ -274,18 +288,19 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		{
 			tarefa++; // Incrementa quantidade de execuções concluídas
 
+			// Seta azul: Registra o evento de conclusão a cada ocorrência/instância finalizada de uma tarefa
+			EventoGantt conclusao;
+			conclusao.tipo = TipoEvento::CONCLUSAO;
+			conclusao.idTarefa = tarefa.getId();
+			historicoAtual.eventos.push_back(conclusao);
+
 			if (tarefa.getQuantidadeExecucoes() < 10)
 			{
-				tarefa.preparaProximaExecucao(tickAtual); // Prepara próximo ciclo (soma período)
+				tarefa.preparaProximaExecucao(tickAtual); // Prepara próximo ciclo (soma período e atualiza proximaLiberacao)
+				tarefa.setEstado(EstadoTarefa::SUSPENSA); // Fica suspensa ate a chegada do proximo periodo
 			}
 			else
 			{
-				// Conclusão definitiva da tarefa após 10 execuções
-				EventoGantt conclusao;
-				conclusao.tipo = TipoEvento::CONCLUSAO;
-				conclusao.idTarefa = tarefa.getId();
-				historicoAtual.eventos.push_back(conclusao);
-
 				tarefa.setEstado(EstadoTarefa::TERMINADA);
 			}
 		}
@@ -297,19 +312,12 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		}
 	}
 
-	// 3. Registro do Histórico e Eventos de Ingresso
+	// 3. Registro do Histórico
 	historicoAtual.tempo = tickAtual;
 	for (const Tarefa& tarefa : tarefas)
 	{
 		historicoAtual.todasTarefas.push_back(tarefa.getSnapshot());
-
-		if (tarefa.getIngresso() == tickAtual)
-		{
-			EventoGantt ingresso;
-			ingresso.tipo = TipoEvento::INGRESSO;
-			ingresso.idTarefa = tarefa.getId();
-			historicoAtual.eventos.push_back(ingresso);
-		}
+		// NOTA: A verificação de ingresso que ficava aqui foi movida para o início do método (Passo 0)
 	}
 
 	historicoAtual.tarefas = tarefas;
@@ -317,7 +325,6 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 	tickAtual++;
 
 	return historicoAtual;
-
 }
 
 //atribui as prioridades estaticas para as tarefas
