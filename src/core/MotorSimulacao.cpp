@@ -296,7 +296,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 
 			if (tarefa.getQuantidadeExecucoes() < 10)
 			{
-				tarefa.preparaProximaExecucao(tickAtual); // Prepara próximo ciclo (soma período e atualiza proximaLiberacao)
+				//tarefa.preparaProximaExecucao(tickAtual); // Prepara próximo ciclo (soma período e atualiza proximaLiberacao)
 				tarefa.setEstado(EstadoTarefa::SUSPENSA); // Fica suspensa ate a chegada do proximo periodo
 			}
 			else
@@ -322,6 +322,15 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 
 	historicoAtual.tarefas = tarefas;
 	historicoTimeline.push_back(historicoAtual);
+
+	for (Tarefa& tarefa:tarefas)
+	{
+		if (tarefa.getEstado()==EstadoTarefa::SUSPENSA && tarefa.getTempoRestante()==0)
+		{
+			tarefa.preparaProximaExecucao(tickAtual);
+		}
+	}
+
 	tickAtual++;
 
 	return historicoAtual;
