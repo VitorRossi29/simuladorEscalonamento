@@ -12,6 +12,12 @@ ImU32 PainelGraficoGantt::hexParaImU32(const char* hex, float alpha)
     if (hex == nullptr || strlen(hex) < 6)
         return IM_COL32(128, 128, 128, 255); // Cor cinza padrao em caso de falha
 
+    //ignora # inicial
+    if (hex[0]=='#')
+    {
+        hex++;
+    }
+
     unsigned int r_vermelho = 0, g_verde = 0, b_azul = 0;
     sscanf(hex, "%02x%02x%02x", &r_vermelho, &g_verde, &b_azul);
 
