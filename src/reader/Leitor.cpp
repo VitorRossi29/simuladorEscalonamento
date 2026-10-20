@@ -6,7 +6,7 @@
 #include <cctype>
 #include <vector>
 
-// Tira os caractres invalidos do começo e do fim
+// Tira os caractres invalidos do comeco e do fim
 static std::string aparar(const std::string& string)
 {
     // Encontra o primeiro caractere que é valido
@@ -19,7 +19,7 @@ static std::string aparar(const std::string& string)
     // Encontra o ultimo caractere valido
     size_t ultimo = string.find_last_not_of(" \t\n\r");
 
-    // Retorna a SUBSTRING que começa no "primeiro" 
+    // Retorna a SUBSTRING que comeca no "primeiro" 
     // "ultimo - primeiro + 1" é o tamanho da substring
     return string.substr(primeiro, ultimo - primeiro + 1);
 }

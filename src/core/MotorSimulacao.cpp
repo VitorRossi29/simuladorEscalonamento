@@ -207,10 +207,10 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 	historicoAtual.eventos = std::move(eventosDesempatePendentes);
 	eventosDesempatePendentes.clear();
 
-	// ALTERAÇÃO/CORREÇÃO (Seta Verde - Registro Antecipado):
+	// ALTERAcaO/CORREcaO (Seta Verde - Registro Antecipado):
 	// O registro do ingresso (seta verde) DEVE ser feito AQUI, no início do tick, ANTES que a CPU execute.
-	// Se a tarefa tiver duração 1, ela será concluída no mesmo tick e a função preparaProximaExecucao()
-	// alterará a proximaLiberacao. Registrar o ingresso aqui garante que tarefas com C=1 recebam a seta verde.
+	// Se a tarefa tiver duracao 1, ela sera concluída no mesmo tick e a funcao preparaProximaExecucao()
+	// alterara a proximaLiberacao. Registrar o ingresso aqui garante que tarefas com C=1 recebam a seta verde.
 	for (const Tarefa& tarefa : tarefas)
 	{
 		if (tarefa.getEstado() != EstadoTarefa::TERMINADA && tarefa.getProximaLiberacao() == tickAtual)
@@ -222,7 +222,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		}
 	}
 
-	// 1. Atribuição de CPUs
+	// 1. Atribuicao de CPUs
 	if (tarefasMaiorPrioridade.empty())
 	{
 		for (int i = 0; i < quantCPUs; i++)
@@ -261,10 +261,10 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		}
 	}
 
-	// 2. Atualização de Ciclo das Tarefas (RODA EM TODOS OS TICKS)
+	// 2. Atualizacao de Ciclo das Tarefas (RODA EM TODOS OS TICKS)
 	for (Tarefa& tarefa : tarefas)
 	{
-		// Ignora tarefas que já encerraram seu ciclo de vida
+		// Ignora tarefas que ja encerraram seu ciclo de vida
 		if (tarefa.getEstado() == EstadoTarefa::TERMINADA)
 		{
 			continue;
@@ -283,12 +283,12 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 
 			++tarefa; // Incrementa número de deadlines perdidas
 		}
-		// Verifica conclusão do período/instância atual
+		// Verifica conclusao do período/instância atual
 		else if (tarefa.getTempoRestante() == 0)
 		{
-			tarefa++; // Incrementa quantidade de execuções concluídas
+			tarefa++; // Incrementa quantidade de execucões concluídas
 
-			// Seta azul: Registra o evento de conclusão a cada ocorrência/instância finalizada de uma tarefa
+			// Seta azul: Registra o evento de conclusao a cada ocorrência/instância finalizada de uma tarefa
 			EventoGantt conclusao;
 			conclusao.tipo = TipoEvento::CONCLUSAO;
 			conclusao.idTarefa = tarefa.getId();
@@ -296,7 +296,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 
 			if (tarefa.getQuantidadeExecucoes() < 10)
 			{
-				tarefa.preparaProximaExecucao(tickAtual); // Prepara próximo ciclo (soma período e atualiza proximaLiberacao)
+				tarefa.preparaProximaExecucao(tickAtual); // Prepara prohximo ciclo (soma período e atualiza proximaLiberacao)
 				tarefa.setEstado(EstadoTarefa::SUSPENSA); // Fica suspensa ate a chegada do proximo periodo
 			}
 			else
@@ -304,7 +304,7 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 				tarefa.setEstado(EstadoTarefa::TERMINADA);
 			}
 		}
-		// Incrementa tempo de espera se a tarefa estiver pronta mas não foi executada neste tick
+		// Incrementa tempo de espera se a tarefa estiver pronta mas nao foi executada neste tick
 		else if (tarefa.getEstado() == EstadoTarefa::PRONTA &&
 			std::find(tarefasMaiorPrioridade.begin(), tarefasMaiorPrioridade.end(), &tarefa) == tarefasMaiorPrioridade.end())
 		{
@@ -312,12 +312,12 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 		}
 	}
 
-	// 3. Registro do Histórico
+	// 3. Registro do Histohrico
 	historicoAtual.tempo = tickAtual;
 	for (const Tarefa& tarefa : tarefas)
 	{
 		historicoAtual.todasTarefas.push_back(tarefa.getSnapshot());
-		// NOTA: A verificação de ingresso que ficava aqui foi movida para o início do método (Passo 0)
+		// NOTA: A verificacao de ingresso que ficava aqui foi movida para o início do método (Passo 0)
 	}
 
 	historicoAtual.tarefas = tarefas;

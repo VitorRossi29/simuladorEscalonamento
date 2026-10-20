@@ -21,6 +21,9 @@
 #define ImGuiCol_TabUnfocusedActive ImGuiCol_HeaderHovered
 #endif
 
+// Definicao/Instanciacao da variavel estatica global de logs
+std::vector<GerenciadorGUI::ItemLog> GerenciadorGUI::s_logs;
+
 GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 	m_motor(motor),
 	fonteDados(ModoFonteDados::MOCK),
@@ -42,11 +45,16 @@ GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 	m_quantidadeCPUsAnterior(m_quantidadeCPUs),
 	m_quantumAnterior(m_quantum),
 	m_algoritmoAnterior(m_algoritmoSelecionado),
+	m_fonteDadosAnterior(fonteDados),
+
+	querUtilizacao(false),
+	utilizacaoCPU(0.0f),
 
 	m_exibirConfig(true),
 	m_exibirControles(true),
 	m_exibirTabela(true),
 	m_exibirGantt(true),
+	m_exibirLogs(true),
 
 	m_solicitarExportacao(false),
 
@@ -149,7 +157,7 @@ void GerenciadorGUI::customizarEstilo()
 	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.8f, 0.8f, 0.8f, 0.35f);
 }
 
-//Esta função roda uma única vez no início da aplicação ou quando a simulação precisa ser totalmente restaurada
+//Esta funcao roda uma única vez no início da aplicacao ou quando a simulacao precisa ser totalmente restaurada
 void GerenciadorGUI::inicializar()
 {
 	m_tickAtual = 0;
@@ -227,6 +235,7 @@ void GerenciadorGUI::renderizar()
 				ImGui::MenuItem("Painel de Configuracao", NULL, &m_exibirConfig);
 				ImGui::MenuItem("Painel de Controle", NULL, &m_exibirControles);
 				ImGui::MenuItem("Grafico de Gantt", NULL, &m_exibirGantt);
+				ImGui::MenuItem("Console de Logs", NULL, &m_exibirLogs);
 				ImGui::EndMenu();
 			}
 
@@ -265,6 +274,9 @@ void GerenciadorGUI::renderizar()
 			
 		if (m_exibirGantt)
 			m_painelGantt.renderizar();
+
+		if (m_exibirLogs)
+			desenharJanelaLogs();
 
 
 		// Checa se houve mudanca estrutural no arquivo
@@ -387,6 +399,7 @@ void GerenciadorGUI::carregarArquivoEncontrado()
 	m_quantidadeCPUs = config.quantidadeCPUs;
 	m_quantum = config.quantum;
 	TipoAlgoritmo tipodesse = config.algoritmo;
+
 	if (tipodesse == TipoAlgoritmo::RATE_MONOTONIC)
 		m_algoritmo = "RM";
 	else if (tipodesse == TipoAlgoritmo::EARLIEST_DEADLINE_FIRST)
@@ -394,7 +407,8 @@ void GerenciadorGUI::carregarArquivoEncontrado()
 	else
 		m_algoritmo = "Outro";
 
-	// Atualizacao do Motor
+	// Limpa os vetores do GUI e do motor
+	m_tarefas.clear();
 	m_motor->limparTarefas();
 
 	const std::vector<std::string> paletaCores = {
@@ -402,6 +416,7 @@ void GerenciadorGUI::carregarArquivoEncontrado()
 		"#8E44AD", "#1ABC9C", "#D35400", "#2C3E50"
 	};
 
+	// Converte as tarefas lidas do arquivo em TarefaGUI no vetor m_tarefas
 	for (size_t i = 0; i < config.tarefas.size(); i++)
 	{
 		Tarefa& t = config.tarefas[i];
@@ -414,17 +429,21 @@ void GerenciadorGUI::carregarArquivoEncontrado()
 
 		m_motor->addTarefa(t);
 	}
+
+	// Chama atualizarTarefasNaEngine para "corrigir" m_tarefas com o validarTarefa() 
+	// e repassar os dados corretos para o motor antes de simular
+	m_tickAtual = 0;
 	m_motor->setAlgoritmo(config.algoritmo);
 	m_motor->setQuantidadeCPUs(m_quantidadeCPUs);
 	m_motor->setQuantum(m_quantum);
 
+	atualizarTarefasNaEngine();
+
 	// Reinicio da simulacao
-	m_tickAtual = 0;
 	m_motor->resetSimulacao();
 	m_motor->executaTempoReal();
 
 	sincronizarComEngine();
-
 }
 
 void GerenciadorGUI::recalcularSimulacao()
@@ -452,7 +471,7 @@ void GerenciadorGUI::recalcularSimulacao()
 		//	m_motor->executaPassoAPasso(1);
 		//}
 
-		// Executa a simulação completa para gerar todo o histórico do hiperperíodo/término
+		// Executa a simulacao completa para gerar todo o histohrico do hiperperíodo/término
 		m_motor->executaTempoReal();
 
 		sincronizarComEngine();
@@ -557,7 +576,7 @@ void GerenciadorGUI::sincronizarComEngine()
 		for (size_t cpuj = 0; cpuj < historicoPasso.tarefasExecutadas.size(); cpuj++)
 		{
 			EstadoCPU estadocpu;
-			estadocpu.idCpu = static_cast<int>(cpuj + 1); // Atribui um id pro cpu, que começa no cpu 1, cpu 2, etc
+			estadocpu.idCpu = static_cast<int>(cpuj + 1); // Atribui um id pro cpu, que comeca no cpu 1, cpu 2, etc
 			estadocpu.idTarefaExecutando = historicoPasso.tarefasExecutadas[cpuj].getId();	// Pega o id da tarefa que estava sendo executada
 			snapGUI.cpus.push_back(estadocpu);	// Coloca esse cpu na lista desse insante, com o id dele e da tarefa
 		}
@@ -603,14 +622,14 @@ void GerenciadorGUI::sincronizarComEngine()
 			}
 			else if (tMotor.getProximaLiberacao() <= historicoPasso.tempo && tMotor.getTempoRestante() > 0 && tMotor.getEstado() != EstadoTarefa::SUSPENSA)
 			{
-				// ALTERAÇÃO/CORREÇÃO: A tarefa só entra na Fila de Prontas (PRONTA) quando seu período chegou
-				// (proximaLiberacao <= tempo) e ela possui duração restante a ser executada na instância.
+				// ALTERAcaO/CORREcaO: A tarefa soh entra na Fila de Prontas (PRONTA) quando seu período chegou
+				// (proximaLiberacao <= tempo) e ela possui duracao restante a ser executada na instância.
 				t.estado = EstadoTarefa::PRONTA;
 			}
 			else
 			{
-				// ALTERAÇÃO/CORREÇÃO: Se a tarefa encerrou sua execução da instância e aguarda a chegada do próximo período
-				// (ou se foi suspensa manualmente pelo usuário), seu estado operacional é SUSPENSA.
+				// ALTERAcaO/CORREcaO: Se a tarefa encerrou sua execucao da instância e aguarda a chegada do prohximo período
+				// (ou se foi suspensa manualmente pelo usuario), seu estado operacional é SUSPENSA.
 				t.estado = EstadoTarefa::SUSPENSA;
 			}
 
@@ -639,13 +658,13 @@ void GerenciadorGUI::screenShotAvancada()
 	Image imagem = LoadImageFromTexture(alvo.texture);
 	ImageFlipVertical(&imagem);
 
-	// Lógica para nome de arquivo único
+	// Lohgica para nome de arquivo único
 	std::string prefixo = "../../../resultado_simulacao_gantt";
 	std::string extensao = ".png";
 	std::string caminhoFinal = prefixo + extensao;
 
 	int contador = 1;
-	// Enquanto o arquivo já existir no diretório, incrementa o sufixo numérico
+	// Enquanto o arquivo ja existir no diretohrio, incrementa o sufixo numérico
 	while (FileExists(caminhoFinal.c_str()))
 	{
 		caminhoFinal = prefixo + "_" + std::to_string(contador) + extensao;
@@ -660,12 +679,18 @@ void GerenciadorGUI::screenShotAvancada()
 	m_solicitarExportacao = false;
 }
 
-// Se houve mudança nas tarefas pela GUI ele vai atualizar as tarefas na ENGINE
+// Se houve mudanca nas tarefas pela GUI ele vai atualizar as tarefas na ENGINE
 void GerenciadorGUI::atualizarTarefasNaEngine()
 {
 	if (m_motor == nullptr)
 	{
 		return;
+	}
+
+	// Sanitiza todas as tarefas vindas da UI ou do arquivo de uma soh vez
+	for (size_t i = 0; i < m_tarefas.size(); i++)
+	{
+		validarTarefa(m_tarefas[i], "Simulacao");
 	}
 
 	if (m_tickAtual == 0) // SE ESTIVER NO INÍCIO: Limpa e recria a lista do motor
@@ -688,7 +713,7 @@ void GerenciadorGUI::atualizarTarefasNaEngine()
 			m_motor->addTarefa(tReal);
 		}
 	}
-	else // SE ESTIVER NO MEIO DA SIMULAÇÃO (TICK > 0): Repassa TODOS os parâmetros editados
+	else // SE ESTIVER NO MEIO DA SIMULAcaO (TICK > 0): Repassa TODOS os parâmetros editados
 	{
 		auto& tarefasMotor = const_cast<std::vector<Tarefa>&>(m_motor->getTarefas());
 
@@ -714,7 +739,7 @@ void GerenciadorGUI::atualizarTarefasNaEngine()
 				}
 			}
 
-			// Se for uma tarefa totalmente nova adicionada durante a simulação:
+			// Se for uma tarefa totalmente nova adicionada durante a simulacao:
 			if (!encontrada)
 			{
 				Tarefa tNova(tGUI.id,
@@ -760,7 +785,7 @@ void GerenciadorGUI::reescalonarAPartirDoTickAtual()
 	if (m_motor == nullptr || fonteDados != ModoFonteDados::ENGINE_REAL) 
 		return;
 
-	// Trunca o histórico da Engine do tick atual em diante
+	// Trunca o histohrico da Engine do tick atual em diante
 	m_motor->resetaAPartirDe(m_tickAtual);
 
 	atualizarTarefasNaEngine();
@@ -774,11 +799,270 @@ void GerenciadorGUI::reescalonarAPartirDoTickAtual()
 	// Simula o futuro a partir da agulha de tempo atual até o final
 	m_motor->executaTempoReal();
 
-	// Sincroniza o novo histórico com a GUI preservando a posição do tick
+	// Sincroniza o novo histohrico com a GUI preservando a posicao do tick
 	sincronizarComEngine();
 
 	// IMPORTANTE : REDEFINIR O M_TOTALTICKS
 	m_totalTicks = static_cast<int>(m_historico.size());
 }
 
+// Método estatico para registrar erros e avisos de qualquer lugar do projeto
+void GerenciadorGUI::registrarLog(TipoLog tipo, const std::string& mensagem)
+{
+	s_logs.push_back({ tipo, mensagem });
+}
 
+// Método estatico para limpar os registros de log
+void GerenciadorGUI::limparLogs()
+{
+	s_logs.clear();
+}
+
+// Desenha a janela ImGui única com o histohrico de erros e violacões do usuario
+void GerenciadorGUI::desenharJanelaLogs()
+{
+	if (!m_exibirLogs) return;
+
+	ImGui::SetNextWindowSize(ImVec2(500, 200), ImGuiCond_FirstUseEver);
+
+	if (ImGui::Begin("Console de Logs e Violacoes", &m_exibirLogs))
+	{
+		if (ImGui::Button("Limpar Logs"))
+		{
+			limparLogs();
+		}
+
+		ImGui::SameLine();
+		ImGui::TextDisabled("(Total: %zu mensagens)", s_logs.size());
+
+		ImGui::Separator();
+
+		// area rolavel contendo o histohrico de mensagens
+		ImGui::BeginChild("ScrollRegionLogs", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
+		for (size_t i = 0; i < s_logs.size(); i++)
+		{
+			const ItemLog& log = s_logs[i];
+
+			// Define a cor de acordo com o tipo de mensagem
+			if (log.tipo == TipoLog::ERRO)
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "[ERRO] %s", log.mensagem.c_str());
+			}
+			else if (log.tipo == TipoLog::AVISO)
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "[AVISO] %s", log.mensagem.c_str());
+			}
+			else
+			{
+				ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "[INFO] %s", log.mensagem.c_str());
+			}
+		}
+
+		// Rola automaticamente para a mensagem mais recente quando novas mensagens chegarem
+		if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+		{
+			ImGui::SetScrollHereY(1.0f);
+		}
+
+		ImGui::EndChild();
+	}
+	ImGui::End();
+}
+
+// Funcao utilitaria para corrigir atributos invalidos e registrar logs de uma soh vez
+bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
+{
+	bool teveCorrecao = false;
+
+	int idBase = 1;
+	if (m_tarefas.empty())
+	{
+		idBase = 1;
+	}
+	else
+	{
+		idBase = m_tarefas.back().id + 1;
+	}
+	
+	if (t.id < 0)	// ID NEGATIVO EH PROIBIDO
+	{
+		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": ID negativo. Ajustado para " + std::to_string(idBase));
+		t.id = idBase;
+		teveCorrecao = true;
+	}
+
+	int correcao = 1;
+	for (size_t j = 0; j < correcao; j++)
+	{
+		for (size_t i = 0; i < m_tarefas.size(); i++)
+		{
+			// Fazemos o primeiro teste para impedir de comparar com si propria
+			if (&t != &m_tarefas.at(i) && t.id == m_tarefas.at(i).id)		// ID REPETIDO EH PROIBIDO
+			{
+				registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": ID repetido (" + std::to_string(t.ingresso) + "). Ajustado para 0" + std::to_string(m_tarefas.at(i).id + 1) );
+				t.id = m_tarefas.at(i).id + 1;
+				teveCorrecao = true;
+				correcao++;
+			}
+		}
+	}
+
+	if (t.duracao <= 0) // DURACAO NAO POSITIVA EH PROIBIDA
+	{
+		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": Duracao invalida (" + std::to_string(t.duracao) + "). Ajustada para 1.");
+		t.duracao = 1;
+		teveCorrecao = true;
+	}
+
+	if (t.periodo == 0) // PERIODO IGUAL A ZERO APENAS NA PARTE 2 DO TRABALHO
+	{
+		registrarLog(TipoLog::AVISO, origem + " - Tarefa " + std::to_string(t.id) + ": Tarefa aperiodica (sera implementada apenas no projeto B) (" + std::to_string(t.periodo) + "). Ajustado para 1.");
+		t.periodo = 1;
+		teveCorrecao = true;
+	}
+
+	if (t.periodo < 0) // Periodo menor que zero eh erro
+	{
+		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": Periodo negativo (" + std::to_string(t.periodo) + "). Ajustado para 1.");
+		t.periodo = 1;
+		teveCorrecao = true;
+	}
+
+	if (t.prazo <= 0)	// Prazo nao positivo nao eh permitido
+	{
+		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": Prazo invalido (" + std::to_string(t.prazo) + "). Ajustado para 1.");
+		t.prazo = 1;
+		teveCorrecao = true;
+	}
+
+	if (t.ingresso < 0)	// Ingresso menor que zero nao eh permitido (negativo)
+	{
+		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": Ingresso negativo (" + std::to_string(t.ingresso) + "). Ajustado para 0.");
+		t.ingresso = 0;
+		teveCorrecao = true;
+	}	
+
+	// Duracao maior que o Periodo 
+	if (t.duracao > t.periodo)
+	{
+		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": Duracao (" + std::to_string(t.duracao) + ") maior que o Periodo (" + std::to_string(t.periodo) + "). Duracao ajustada para " + std::to_string(t.periodo) + ".");
+		t.duracao = t.periodo;
+		teveCorrecao = true;
+	}
+
+	// Prazo menor que duracao nao eh permitido 
+	if (t.prazo < t.duracao)
+	{
+		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": Prazo (" + std::to_string(t.prazo) + ") menor que duracao (" + std::to_string(t.duracao) + "). Ajustados para serem iguais.");
+		t.prazo = t.duracao;
+		teveCorrecao = true;
+	}
+
+	// Prazo maior que o Período (viola modelo de prazos restritos)
+	if (t.prazo > t.periodo)
+	{
+		registrarLog(TipoLog::AVISO, origem + " - Tarefa " + std::to_string(t.id) + ": Prazo (" + std::to_string(t.prazo) + ") maior que o Periodo (" + std::to_string(t.periodo) + "). Prazo ajustado para " + std::to_string(t.periodo) + ".");
+		t.prazo = t.periodo;
+		teveCorrecao = true;
+	}
+
+
+	// Validacao de ver ser a cor eh valida
+	bool corInvalida = false;
+	size_t tamCor = std::strlen(t.cor);
+
+	// Deve ter exatamente 7 caracteres e começar com '#'
+	if (tamCor != 7 || t.cor[0] != '#')
+	{
+		corInvalida = true;
+	}
+	else
+	{
+		// Verifica se os 6 caracteres seguintes sao digitos validos
+		for (size_t k = 1; k < 7; k++)
+		{
+			// isxdigit() verifica se um caracter eh um digito hexadecimal (os que podem)
+			if (!std::isxdigit(static_cast<unsigned char>(t.cor[k])))
+			{
+				corInvalida = true;
+				break;
+			}
+		}
+	}
+
+	if (corInvalida)
+	{
+		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": Formato de cor invalido (" + std::string(t.cor) + "). Redefinida para a cor padrao #FF5733.");
+
+		const char* corPadrao = "#FF5733";
+		strncpy(t.cor, corPadrao, sizeof(t.cor) - 1);
+		t.cor[sizeof(t.cor) - 1] = '\0';
+
+		teveCorrecao = true;
+	}
+
+	// Validacao pra impedir que tenha cor repetida
+	bool corRepetida = false;
+	for (size_t i = 0; i < m_tarefas.size(); i++)
+	{
+		// Compara a cor ignorando a própria tarefa
+		if (&t != &m_tarefas.at(i) && std::string(t.cor) == std::string(m_tarefas.at(i).cor))
+		{
+			corRepetida = true;
+			break;
+		}
+	}
+
+	if (corRepetida)
+	{
+		std::string corAntiga = t.cor;
+
+		// Paleta de cores distintas para substituição
+		const std::vector<std::string> paletaCoresReserva = {
+			"#FF5733", "#33FF57", "#3357FF", "#F39C12",
+			"#8E44AD", "#1ABC9C", "#D35400", "#2C3E50",
+			"#E74C3C", "#3498DB", "#2ECC71", "#F1C40F"
+		};
+
+		// Procura uma cor da paleta que ainda não esteja em uso por nenhuma outra tarefa
+		std::string novaCorEncontrada = "";
+		for (const auto& corOpcao : paletaCoresReserva)
+		{
+			bool emUso = false;
+			for (size_t i = 0; i < m_tarefas.size(); i++)
+			{
+				if (&t != &m_tarefas.at(i) && corOpcao == std::string(m_tarefas.at(i).cor))
+				{
+					emUso = true;
+					break;
+				}
+			}
+
+			if (!emUso)
+			{
+				novaCorEncontrada = corOpcao;
+				break;
+			}
+		}
+
+		// PLANO B caso todas as cores da paleta já estejam em uso
+		if (novaCorEncontrada.empty())
+		{
+			unsigned int hash = static_cast<unsigned int>(t.id * 1664525 + 1013904223);
+			char bufferHex[8];
+			snprintf(bufferHex, sizeof(bufferHex), "#%02X%02X%02X",
+				(hash & 0xFF), ((hash >> 8) & 0xFF), ((hash >> 16) & 0xFF));
+			novaCorEncontrada = bufferHex;
+		}
+
+		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": Cor repetida (" + corAntiga + "). Redefinida para a cor unica " + novaCorEncontrada + ".");
+
+		strncpy(t.cor, novaCorEncontrada.c_str(), sizeof(t.cor) - 1);
+		t.cor[sizeof(t.cor) - 1] = '\0';
+
+		teveCorrecao = true;
+	}
+
+	return teveCorrecao;
+}

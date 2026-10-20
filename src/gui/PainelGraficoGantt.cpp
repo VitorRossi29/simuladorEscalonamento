@@ -10,7 +10,7 @@ const char* estadoParaString(EstadoTarefa estado);
 ImU32 PainelGraficoGantt::hexParaImU32(const char* hex, float alpha)
 {
     if (hex == nullptr || strlen(hex) < 6)
-        return IM_COL32(128, 128, 128, 255); // Cor cinza padrão em caso de falha
+        return IM_COL32(128, 128, 128, 255); // Cor cinza padrao em caso de falha
 
     unsigned int r_vermelho = 0, g_verde = 0, b_azul = 0;
     sscanf(hex, "%02x%02x%02x", &r_vermelho, &g_verde, &b_azul);
@@ -18,7 +18,7 @@ ImU32 PainelGraficoGantt::hexParaImU32(const char* hex, float alpha)
     return IM_COL32(r_vermelho, g_verde, b_azul, static_cast<int>(alpha * 255.0f));
 }
 
-// Função auxiliar local para converter Hexadecimal em Color da Raylib
+// Funcao auxiliar local para converter Hexadecimal em Color da Raylib
 Color PainelGraficoGantt::hexParaRaylibColor(const char* hex, float alpha)
 {
     if (hex == nullptr || strlen(hex) < 6)
@@ -46,7 +46,7 @@ void PainelGraficoGantt::desenharReguaEixoX(ImDrawList* listaDesenhos, ImVec2 in
         //Calculo da posicao X do tick t
         int posicaoXt = inicio.x + m_margemEsquerda + (t * m_larguraTick);
         
-        std::string txt = std::to_string(t + 1);
+        std::string txt = std::to_string(t);
 
         //Posicao do texto
         ImVec2 posicaoTexto(posicaoXt + 5.0f, inicio.y + 10.0f);
@@ -84,14 +84,14 @@ void PainelGraficoGantt::desenharEixoYELinhasBase(ImDrawList* listaDesenhos, ImV
 {
     int totalTicks = static_cast<int>(m_historicoRef->size());
 
-    // ALTERAÇÃO/CORREÇÃO: Desenha os rótulos das linhas dedicadas das CPUs no eixo Y (acima da lista de tarefas)
+    // ALTERAcaO/CORREcaO: Desenha os rohtulos das linhas dedicadas das CPUs no eixo Y (acima da lista de tarefas)
     if (m_qtdeCpusRef != nullptr)
     {
         int totalCpus = *m_qtdeCpusRef;
         for (int c = 0; c < totalCpus; c++)
         {
             int idCpu = c + 1;
-            // Posição Y da linha da CPU correspondente
+            // Posicao Y da linha da CPU correspondente
             float yCentro = inicio.y + m_margemTopo - 18.0f - (c * 22.0f);
             std::string labelCpu = "CPU " + std::to_string(idCpu);
 
@@ -126,14 +126,14 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
 
     size_t limite;
 
-    // Define até qual tick o gráfico deve ser revelado na interface no modo passo a passo
+    // Define até qual tick o grafico deve ser revelado na interface no modo passo a passo
     // E defube o limite como o ultimo tick no modo instantaneo
     if (!(*m_modoExecucao))
     {
         int tickLimite = *m_tickAtualRef;
         size_t totalTicksDisponiveis = m_historicoRef->size();
 
-        // Garante que não ultrapassará o tamanho do vetor do histórico
+        // Garante que nao ultrapassara o tamanho do vetor do histohrico
         limite = std::min(static_cast<size_t>(tickLimite + 1), totalTicksDisponiveis);
     }
     else
@@ -168,7 +168,7 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
 
             if (snapCerto == nullptr)
             {
-                continue; // Ignora o desenho desta célula se a tarefa não tiver registro neste tick
+                continue; // Ignora o desenho desta célula se a tarefa nao tiver registro neste tick
             }
             //Desenhar de acordo com o estado
             if (snapCerto->estado == EstadoTarefa::EXECUTANDO)
@@ -217,7 +217,7 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
             }
             else if (snapCerto->estado == EstadoTarefa::TERMINADA)
             {
-                // Preenchimento cinza-escuro sólido e liso (sem hachuras)
+                // Preenchimento cinza-escuro sohlido e liso (sem hachuras)
                 listaDesenhos->AddRectFilled(posicaoMin, posicaoMax, IM_COL32(45, 45, 45, 255));
                 // Borda cinza bem fina/discreta
                 listaDesenhos->AddRect(posicaoMin, posicaoMax, IM_COL32(70, 70, 70, 150));
@@ -298,14 +298,14 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
 
     size_t limite;
 
-    // Define até qual tick o gráfico deve ser revelado na interface no modo passo a passo
+    // Define até qual tick o grafico deve ser revelado na interface no modo passo a passo
     // E define o limite como o último tick no modo instantâneo
     if (!(*m_modoExecucao))
     {
         int tickLimite = *m_tickAtualRef;
         size_t totalTicksDisponiveis = m_historicoRef->size();
 
-        // Garante que não ultrapassará o tamanho do vetor do histórico
+        // Garante que nao ultrapassara o tamanho do vetor do histohrico
         limite = std::min(static_cast<size_t>(tickLimite + 1), totalTicksDisponiveis);
     }
     else
@@ -317,7 +317,7 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
     {
         const SnapshotTick& snap = (*m_historicoRef)[t];
 
-        // Detecção e Desenho dos Sinais de Mudança de Estado da CPU (Ligou / Desligou)
+        // Deteccao e Desenho dos Sinais de Mudanca de Estado da CPU (Ligou / Desligou)
         for (size_t c = 0; c < snap.cpus.size(); c++)
         {
             int idCpu = snap.cpus[c].idCpu;
@@ -345,9 +345,9 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
                 float xMinCell = inicio.x + m_margemEsquerda + (t * m_larguraTick);
                 float raio = 9.0f;
 
-                // ALTERAÇÃO/CORREÇÃO (Deslocamento nas Bordas):
-                // LIGOU: Posicionado no lado esquerdo do tick (início da execução)
-                // DESLIGOU: Posicionado no lado direito do tick (término da execução/início do desligamento)
+                // ALTERAcaO/CORREcaO (Deslocamento nas Bordas):
+                // LIGOU: Posicionado no lado esquerdo do tick (início da execucao)
+                // DESLIGOU: Posicionado no lado direito do tick (término da execucao/início do desligamento)
                 float xCentro = ligou ? (xMinCell + 14.0f) : (xMinCell + m_larguraTick - 14.0f);
 
                 int idxCpu = idCpu - 1;
@@ -368,7 +368,7 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
             }
         }
 
-        // Laço interno para percorrer os eventos das tarefas
+        // Laco interno para percorrer os eventos das tarefas
         for (size_t e = 0; e < snap.eventos.size(); e++)
         {
             const EventoGantt& eventoDaVez = snap.eventos[e];
@@ -384,9 +384,9 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
                 }
             }
 
-            if (linhaIndex == -1) continue; // Tarefa não encontrada no vetor
+            if (linhaIndex == -1) continue; // Tarefa nao encontrada no vetor
 
-            // Cálculo da posição X e Y da célula da tarefa no tick t
+            // Calculo da posicao X e Y da célula da tarefa no tick t
             float xMin = inicio.x + m_margemEsquerda + (t * m_larguraTick);
             float yMin = inicio.y + m_margemTopo + (linhaIndex * m_alturaLinha);
 
@@ -401,7 +401,7 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
                 float yTopo = yMin + 12.0f;          // Ponta do triângulo apontando para baixo dentro da célula
                 float yBase = yMin;                  // Base alinhada na linha superior da célula
 
-                // Definição das pontas do triângulo
+                // Definicao das pontas do triângulo
                 ImVec2 pTopo(xEsq, yTopo);
                 ImVec2 pBaseR(xEsq + tamanhoTriangulo, yBase);
                 ImVec2 pBaseL(xEsq - tamanhoTriangulo, yBase);
@@ -429,7 +429,7 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
                 float yTopo = yMin - 12.0f;          // Ponta do triângulo apontando para cima acima da célula
                 float yBase = yMin;                  // Base alinhada na linha superior da célula
 
-                // Definição das pontas do triângulo
+                // Definicao das pontas do triângulo
                 ImVec2 pTopo(xDir, yTopo);
                 ImVec2 pBaseR(xDir + tamanhoTriangulo, yBase);
                 ImVec2 pBaseL(xDir - tamanhoTriangulo, yBase);
@@ -473,7 +473,7 @@ ImVec2 PainelGraficoGantt::dimensoesTotais()
     return ImVec2(larguraTotal, alturaTotal);
 }
 
-// Renderização Off-Screen usando apenas Raylib nativo (Atende o Requisito 2.4 do Edital)
+// Renderizacao Off-Screen usando apenas Raylib nativo (Atende o Requisito 2.4 do Edital)
 void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaCanvas)
 {
     if (m_tarefasRef == nullptr || m_historicoRef == nullptr || m_historicoRef->empty())
@@ -536,7 +536,7 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
         limite = m_historicoRef->size();
     }
 
-    // Blocos de Execução e Hachura
+    // Blocos de Execucao e Hachura
     for (int t = 0; t < limite; t++)
     {
         const SnapshotTick& snap = (*m_historicoRef)[t];
@@ -593,7 +593,7 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
         }
     }
 
-    // Desenho dos Eventos e Sinais da CPU na Exportação Raylib
+    // Desenho dos Eventos e Sinais da CPU na Exportacao Raylib
     for (int t = 0; t < limite; t++)
     {
         const SnapshotTick& snap = (*m_historicoRef)[t];
@@ -625,7 +625,7 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
                 float xCell = origemX + m_margemEsquerda + (t * m_larguraTick);
                 float raio = 9.0f;
 
-                // ALTERAÇÃO/CORREÇÃO (Deslocamento nas Bordas - Raylib):
+                // ALTERAcaO/CORREcaO (Deslocamento nas Bordas - Raylib):
                 float xCentro = ligou ? (xCell + 14.0f) : (xCell + m_larguraTick - 14.0f);
 
                 int idxCpu = idCpu - 1;
@@ -723,7 +723,7 @@ void PainelGraficoGantt::renderizar()
             return;
         }
 
-        // ALTERAÇÃO/CORREÇÃO: Reajusta dinamicamente a margem superior com base no número de CPUs ativas
+        // ALTERAcaO/CORREcaO: Reajusta dinamicamente a margem superior com base no número de CPUs ativas
         int qtdeCpus = (m_qtdeCpusRef != nullptr) ? *m_qtdeCpusRef : 1;
         m_margemTopo = std::max(70.0f, 30.0f + (qtdeCpus * 22.0f));
 
@@ -738,7 +738,7 @@ void PainelGraficoGantt::renderizar()
         float larguraTotal = m_margemEsquerda + (totalTicks * m_larguraTick) + 50.0f;
         float alturaTotal = m_margemTopo + (t_Ord.size() * m_alturaLinha) + 50.0f;
 
-        // Adiciona área com barra de rolagem (Scrollbar) automática do ImGui
+        // Adiciona area com barra de rolagem (Scrollbar) automatica do ImGui
         ImGui::Dummy(ImVec2(larguraTotal, alturaTotal));
 
         // Chamada encadeada dos renderizadores do Gantt

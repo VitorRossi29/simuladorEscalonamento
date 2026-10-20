@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 project(SimuladorEscalonamento CXX C)
 
-# Padrão C++17
+# Padrao C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Runtime estático (/MT e /MTd) para MSVC
+# Runtime estatico (/MT e /MTd) para MSVC
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 include(FetchContent)
@@ -38,12 +38,12 @@ FetchContent_MakeAvailable(rlImGui)
 
 # --- BIBLIOTECAS DE TERCEIROS (ISOLADAS) ---
 
-# Biblioteca estática do ImGui (Apenas código do próprio ImGui)
+# Biblioteca estatica do ImGui (Apenas cohdigo do prohprio ImGui)
 file(GLOB IMGUI_SOURCES ${imgui_SOURCE_DIR}/*.cpp)
 add_library(imgui_static STATIC ${IMGUI_SOURCES})
 target_include_directories(imgui_static PUBLIC ${imgui_SOURCE_DIR})
 
-# Biblioteca estática do rlImGui (Apenas o wrapper rlImGui)
+# Biblioteca estatica do rlImGui (Apenas o wrapper rlImGui)
 add_library(rlimgui_static STATIC ${rlimgui_SOURCE_DIR}/rlImGui.cpp)
 target_include_directories(rlimgui_static PUBLIC ${rlimgui_SOURCE_DIR} ${imgui_SOURCE_DIR})
 target_link_libraries(rlimgui_static PUBLIC raylib imgui_static)
@@ -51,12 +51,12 @@ target_link_libraries(rlimgui_static PUBLIC raylib imgui_static)
 # Mapeia IsTextureValid para IsTextureReady (Compatibilidade Raylib 5.0 <-> rlImGui)
 target_compile_definitions(rlimgui_static PRIVATE IsTextureValid=IsTextureReady)
 
-# --- CÓDIGO-FONTE DO SEU PROJETO ---
+# --- CohDIGO-FONTE DO SEU PROJETO ---
 
 # Coleta automaticamente TODOS os arquivos .cpp dentro de src/ (core, gui, reader, main)
 file(GLOB_RECURSE PROJETO_SOURCES "src/*.cpp")
 
-# Executável Principal
+# Executavel Principal
 add_executable(SimuladorEscalonamento ${PROJETO_SOURCES})
 
 target_include_directories(SimuladorEscalonamento PRIVATE

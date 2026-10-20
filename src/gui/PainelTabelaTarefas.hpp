@@ -36,7 +36,7 @@ private:
 	//renderiza a tabela, snapshot encontrado eh passado para a funcao
 	bool desenharTabela(const SnapshotTick* snapshotAtual);
 
-	//renderiza os campos de entrada e o botão para adicionar tarefas
+	//renderiza os campos de entrada e o botao para adicionar tarefas
 	bool desenharFormularioInsercao();
 
 	//restaura os atributos do formulario para valores padrao apos uma insercao com sucesso

@@ -66,7 +66,7 @@ bool PainelConfiguracao::renderizar()
 
 	ImGui::Separator();
 
-	// Controles diretamente vinculados às variáveis do GerenciadorGUI
+	// Controles diretamente vinculados às variaveis do GerenciadorGUI
 	if (m_qtdeCpus != nullptr)
 	{
 		if ( ImGui::SliderInt("Numero de CPUs", m_qtdeCpus, 1, 16, "%d CPUs") )

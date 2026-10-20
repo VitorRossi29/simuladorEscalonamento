@@ -33,7 +33,7 @@ struct SnapshotTarefaMotor
 class Tarefa
 {
 private:
-    //estáticos
+    //estaticos
     short int id;
     int duracao;
     int periodo;

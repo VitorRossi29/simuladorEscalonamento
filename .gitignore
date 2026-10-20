@@ -442,7 +442,7 @@ Release/
 *.userosv
 *.sln.docstates
 
-# Adicoes CMake e Binários gerados
+# Adicoes CMake e Binarios gerados
 CMakeSettings.json
 *.exe
 *.dll

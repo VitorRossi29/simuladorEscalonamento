@@ -38,7 +38,7 @@ std::vector<SnapshotTick> GeradorMock::gerarHistoricoInicial(std::vector<TarefaG
         //escolhas para a cpu
         for (int c = 0; c < maxCPUs; c++)
         {
-            // A divisão inteira (t / q) faz com que o resultado só mude a cada 'q' ticks,
+            // A divisao inteira (t / q) faz com que o resultado soh mude a cada 'q' ticks,
             // simulando a permanência da tarefa na CPU durante o quantum.
             int sorteio = ((t / q) + c) % numTarefas;
 

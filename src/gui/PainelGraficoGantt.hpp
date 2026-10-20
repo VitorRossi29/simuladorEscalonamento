@@ -12,11 +12,11 @@ private:
     const int* m_qtdeCpusRef;
     const int* m_modoExecucao;
 
-    // Configurações de dimensão e zoom da grade
+    // Configuracões de dimensao e zoom da grade
     float m_larguraTick;  // Largura em pixels de 1 tick (ex: 30.0f)
     float m_alturaLinha;  // Altura em pixels da linha de cada tarefa (ex: 40.0f)
-    float m_margemEsquerda; // Espaço para os rótulos do eixo Y (ex: 100.0f)
-    float m_margemTopo;     // Espaço para a régua do eixo X (ex: 40.0f)
+    float m_margemEsquerda; // Espaco para os rohtulos do eixo Y (ex: 100.0f)
+    float m_margemTopo;     // Espaco para a régua do eixo X (ex: 40.0f)
 
     // Converte string Hex ("FF4500") para ImU32
     ImU32 hexParaImU32(const char* hex, float alpha = 1.0f);

@@ -129,6 +129,7 @@ void Tarefa::geraNumeroAleatorio()
 
 void Tarefa::resetaCor()
 {
+	/*
 	std::random_device rd; //gera uma semente utilizando o proprio hardware do sistema
 	std::mt19937 gen(rd()); //inicializa o motor com a semente criada
 
@@ -143,5 +144,22 @@ void Tarefa::resetaCor()
 	}
 
 	cor=corAleatoria;
+	*/
+
+	// Usar 'static' faz com que o gerador seja inicializado uma única vez na memória
+	static std::random_device rd;
+	static std::mt19937 gen(rd());
+
+	// Evita tons extremamente escuros para não sumir no fundo do Gantt (dígitos de 3 a F)
+	const char caracteres[] = "3456789ABCDEF";
+	std::uniform_int_distribution<int> disCaracter(0, 12);
+
+	std::string corAleatoria = "#"; // Inclui o prefixo # obrigatório
+	for (int i = 0; i < 6; i++)
+	{
+		corAleatoria += caracteres[disCaracter(gen)];
+	}
+
+	cor = corAleatoria;
 }
 

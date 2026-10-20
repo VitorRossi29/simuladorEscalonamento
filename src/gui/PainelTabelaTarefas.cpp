@@ -3,7 +3,7 @@
 #include <cstring>
 
 
-// Função utilitária para converter a enum class em texto formatado para o ImGui
+// Funcao utilitaria para converter a enum class em texto formatado para o ImGui
 const char* estadoParaString(EstadoTarefa estado)
 {
     switch (estado)
@@ -16,7 +16,7 @@ const char* estadoParaString(EstadoTarefa estado)
     }
 }
 
-// Retorna verdadeiro se a transição entre os estados for semanticamente válida
+// Retorna verdadeiro se a transicao entre os estados for semanticamente valida
 bool validarTransicaoEstado(EstadoTarefa atual, EstadoTarefa novo, std::string& mensagemErro)
 {
     if (novo == EstadoTarefa::DEADLINE_PERDIDA)
@@ -46,7 +46,7 @@ bool validarTransicaoEstado(EstadoTarefa atual, EstadoTarefa novo, std::string& 
         return false;
     }
 
-    if (atual == EstadoTarefa::SUSPENSA) // ALTERAÇÃO: Validação para o estado SUSPENSA
+    if (atual == EstadoTarefa::SUSPENSA) // ALTERAcaO: Validacao para o estado SUSPENSA
     {
         if (novo == EstadoTarefa::PRONTA) return true;
         mensagemErro = "Uma tarefa SUSPENSA so pode voltar para o estado PRONTA.";
@@ -159,13 +159,13 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
             ImGui::TableNextColumn();
             ImGui::Text("#%s", tarefa.cor);
 
-            // Coluna 2: Ingresso (Input numérico editável)
+            // Coluna 2: Ingresso (Input numérico editavel)
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1); // Faz o input ocupar toda a largura da celula
             if (ImGui::InputInt("##ingresso", &tarefa.ingresso, 0)) // "##" esconde o rotulo do input
                 editouAlgumCampo = true;
 
-            // Coluna 3: Duração (C)
+            // Coluna 3: Duracao (C)
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1);
             if (ImGui::InputInt("##duracao", &tarefa.duracao, 0))
@@ -204,7 +204,7 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
             const char* opcoesEstados[] = { "NOVA", "PRONTA", "EXECUTANDO", "SUSPENSA", "TERMINADA" };
             EstadoTarefa mapaEstadosEnum[] = { EstadoTarefa::NOVA, EstadoTarefa::PRONTA, EstadoTarefa::EXECUTANDO, EstadoTarefa::SUSPENSA, EstadoTarefa::TERMINADA };
 
-            int itemSelecionadoIndex = 1; // Padrão PRONTA
+            int itemSelecionadoIndex = 1; // Padrao PRONTA
             for (int e = 0; e < 5; e++)
             {
                 if (mapaEstadosEnum[e] == estadoAtual)
@@ -222,7 +222,7 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
                 if (novoEstadoProposto != estadoAtual)
                 {
                     std::string erro;
-                    // Valida se a transição de estado é permitida
+                    // Valida se a transicao de estado é permitida
                     if (validarTransicaoEstado(estadoAtual, novoEstadoProposto, erro))
                     {
                         tarefa.estado = novoEstadoProposto;
@@ -230,10 +230,10 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
                     }
                     else
                     {
-                        // Bloqueia a alteração e exibe o aviso ao usuário (Requisito 3.4)
+                        // Bloqueia a alteracao e exibe o aviso ao usuario (Requisito 3.4)
                         mensagemErroTransicao = erro;
                         exibirModalErro = true;
-                        ImGui::OpenPopup("Transição de Estado Inválida");
+                        ImGui::OpenPopup("Transicao de Estado Invalida");
                     }
                 }
             }
@@ -267,7 +267,7 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
         }
     }
 
-    if (ImGui::BeginPopupModal("Transição de Estado Inválida", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    if (ImGui::BeginPopupModal("Transicao de Estado Invalida", NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {
         ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Erro de Transicao de Estado no RTOS:");
         ImGui::Separator();
@@ -316,7 +316,7 @@ bool PainelTabelaTarefas::desenharFormularioInsercao()
         TarefaGUI tarefaNova;
         tarefaNova.id = proximoId();
 
-        // Copia a string do buffer para o campo char[8] da struct garantindo a terminação nula
+        // Copia a string do buffer para o campo char[8] da struct garantindo a terminacao nula
         strncpy(tarefaNova.cor, m_novaCorBuffer, sizeof(tarefaNova.cor) - 1);
         tarefaNova.cor[sizeof(tarefaNova.cor) - 1] = '\0';
 
@@ -371,7 +371,7 @@ bool PainelTabelaTarefas::desenharFormularioInsercao()
 
         m_tarefasRef->push_back(tarefaNova);
 
-        return true; // Retorna true para atualizar e recalcular a simulação
+        return true; // Retorna true para atualizar e recalcular a simulacao
     }
     return false;
 }

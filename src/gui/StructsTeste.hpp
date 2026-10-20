@@ -21,7 +21,7 @@ typedef struct {
 // Estado individual de cada CPU no tick corrente[cite: 4, 5]
 struct EstadoCPU {
     int idCpu;                // 0, 1, ..., N-1[cite: 4]
-    int idTarefaExecutando;   // ID da tarefa em execução, ou -1 se a CPU estiver Ociosa/Desligada[cite: 5]
+    int idTarefaExecutando;   // ID da tarefa em execucao, ou -1 se a CPU estiver Ociosa/Desligada[cite: 5]
 };
 
 // Registro completo do estado de uma tarefa no tick corrente[cite: 5]
@@ -32,7 +32,7 @@ struct SnapshotTarefaGUI {
     int prazoRestante;        // Quantos ticks faltam para o deadline
 };
 
-// Snapshot global de 1 Tick do Relógio (Unidade fundamental do Histórico)[cite: 5]
+// Snapshot global de 1 Tick do Relohgio (Unidade fundamental do Histohrico)[cite: 5]
 struct SnapshotTick {
     int tick;                                // Instante de tempo t (0, 1, 2, ...)[cite: 5]
     std::vector<EstadoCPU> cpus;             // Estado de cada CPU[cite: 4, 5]
@@ -41,12 +41,12 @@ struct SnapshotTick {
 };
 
 typedef struct {
-    int id;                   // Identificador único (ex: 1, 2, 3)
+    unsigned int id;                   // Identificador único (ex: 1, 2, 3)
     char cor[8];          // Hexadecimal RGB (ex: "FF0000" para vermelho)
-    int ingresso;             // Instante de tempo (tick) de criação
-    int duracao;              // Tempo de execução necessário em cada período
-    int periodo;              // >0: Periódica, =0: Aperiódica[cite: 7]
-    int prazo;                // Deadline relativo a partir da ativação
+    int ingresso;             // Instante de tempo (tick) de criacao
+    int duracao;              // Tempo de execucao necessario em cada período
+    int periodo;              // >0: Periohdica, =0: Aperiohdica[cite: 7]
+    int prazo;                // Deadline relativo a partir da ativacao
     std::string lista_eventos;// Reservado para o Projeto B
     EstadoTarefa estado;
     short int prioridade;
