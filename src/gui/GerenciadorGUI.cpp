@@ -560,8 +560,8 @@ void GerenciadorGUI::sincronizarComEngine()
 
 	//ordena as tarefas do menor para o maior id com funcao lambda
 	std::sort(m_tarefas.begin(), m_tarefas.end(), [](const TarefaGUI& a, const TarefaGUI& b) {
-		return a.id < b.id;
-		});
+		return a.id>b.id;
+	});
 
 	// Conversao do historico de ticks do motor para SnapshotTick
 	const auto& historicoEngine = m_motor->getHistorico();

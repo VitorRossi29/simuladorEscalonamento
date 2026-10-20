@@ -157,7 +157,7 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
 
             // Coluna 1: Cor Hex (Texto simples)
             ImGui::TableNextColumn();
-            ImGui::Text("#%s", tarefa.cor);
+            ImGui::Text("%s", tarefa.cor);
 
             // Coluna 2: Ingresso (Input numérico editavel)
             ImGui::TableNextColumn();
