@@ -296,7 +296,6 @@ Historico MotorSimulacao::passoSimulacao(std::vector<Tarefa*> tarefasMaiorPriori
 
 			if (tarefa.getQuantidadeExecucoes() < 10)
 			{
-				tarefa.preparaProximaExecucao(tickAtual); // Prepara próximo ciclo (soma período e atualiza proximaLiberacao)
 				tarefa.setEstado(EstadoTarefa::SUSPENSA); // Fica suspensa ate a chegada do proximo periodo
 			}
 			else
