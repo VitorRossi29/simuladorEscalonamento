@@ -109,7 +109,6 @@ void Tarefa::preparaProximaExecucao(int tickAtual)
 	while (getProximaLiberacao() <= tickAtual)
 	{
 		snapshot.proximaLiberacao += periodo;
-		
 	}
 	
 	// Troquei para PRAZO mas verificar se esta certo
