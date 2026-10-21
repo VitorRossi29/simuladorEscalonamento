@@ -129,7 +129,7 @@ public:
 	// Método estatico para limpar o histohrico de logs
 	static void limparLogs();
 
-	bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem);
+	bool validarTarefa(TarefaGUI& t, const std::string& origem);
 };
 
 // Tira os caracteres invalidos do comeco e do fim

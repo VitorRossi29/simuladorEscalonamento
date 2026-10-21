@@ -3,6 +3,7 @@
 #include <string>
 #include "PainelTabelaTarefas.hpp"
 #include "raylib.h"
+#include <cstring>
 
 
 const char* estadoParaString(EstadoTarefa estado);
@@ -461,8 +462,8 @@ PainelGraficoGantt::PainelGraficoGantt(const std::vector<TarefaGUI>* tarefas, co
     m_qtdeCpusRef(qtdeCpus),
     m_larguraTick(70.0f),
     m_alturaLinha(40.0f),
-    m_margemEsquerda(70.0f),
-    m_margemTopo(70.0f),
+    m_margemEsquerda(100.0f),
+    m_margemTopo(100.0f),
     m_modoExecucao(modoExecucao)
 {
 
