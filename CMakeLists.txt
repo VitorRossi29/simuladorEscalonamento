@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Runtime estatico (/MT e /MTd) para MSVC
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+# Força o uso de índices de 32-bit no ImGui para permitir malhas com mais de 64K vértices (suporte a 50+ tarefas)
+add_compile_definitions("ImDrawIdx=unsigned int")
+
 include(FetchContent)
 
 # 1. Raylib 5.0
