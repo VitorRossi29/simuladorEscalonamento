@@ -1,4 +1,5 @@
 #include "Leitor.hpp"
+#include "../gui/GerenciadorGUI.hpp"
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -24,6 +25,15 @@ static std::string aparar(const std::string& string)
     return string.substr(primeiro, ultimo - primeiro + 1);
 }
 
+// NOVO: Funcao auxiliar para registrar o erro especifico do arquivo no Console de Logs
+// e lancar a excecao runtime_error correspondente
+static void notificarEErro(const std::string& mensagem)
+{
+    // Registra a mensagem detalhada no painel estatico de logs
+    GerenciadorGUI::registrarLog(GerenciadorGUI::TipoLog::ERRO, "[Leitor] " + mensagem);
+    throw std::runtime_error(mensagem);
+}
+
 // Cria uma copia da string e transforma cada caractere em maiusculo
 std::string Leitor::paraMaiusculo(const std::string& texto)
 {
@@ -46,7 +56,8 @@ static int stringParaIntSegura(const std::string& texto, int linhaNum, const std
     std::string textoLimpo = aparar(texto);
     if (textoLimpo.empty())
     {
-        throw std::runtime_error("Linha " + std::to_string(linhaNum) + ": O campo '" + nomeCampo + "' esta vazio no arquivo de configuracao.");
+        // NOVO: Registra no log caso o campo obrigatorio esteja vazio
+        notificarEErro("Linha " + std::to_string(linhaNum) + ": O campo '" + nomeCampo + "' esta vazio no arquivo de configuracao.");
     }
     try
     {
@@ -54,14 +65,17 @@ static int stringParaIntSegura(const std::string& texto, int linhaNum, const std
         int valor = std::stoi(textoLimpo, &pos);
         if (pos != textoLimpo.length())
         {
-            throw std::invalid_argument("caracteres nao numericos");
+            // NOVO: Registra no log caso o campo contenha texto/caracteres nao numericos misturados
+            notificarEErro("Linha " + std::to_string(linhaNum) + ": Valor invalido para o campo '" + nomeCampo + "': '" + texto + "'. Contem caracteres nao numericos.");
         }
         return valor;
     }
     catch (const std::exception&)
     {
-        throw std::runtime_error("Linha " + std::to_string(linhaNum) + ": Valor invalido para o campo '" + nomeCampo + "': '" + texto + "'. Esperado um numero.");
+        // NOVO: Registra no log erro geral de conversao numerica (ex: overflow ou letras)
+        notificarEErro("Linha " + std::to_string(linhaNum) + ": Valor invalido para o campo '" + nomeCampo + "': '" + texto + "'. Esperado um numero inteiro.");
     }
+    return 0;
 }
 
 // Auxiliar para dividir a linha por ponto e virgula
@@ -86,7 +100,8 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
 
     if (!arquivo.is_open())
     {
-        throw std::runtime_error("Nao foi possivel abrir o arquivo.");
+        // NOVO: Registra no log a falha de abertura do arquivo no caminho especificado
+        notificarEErro("Nao foi possivel abrir o arquivo no caminho '" + caminho + "'. Verifique se o caminho esta correto.");
     }
 
     Configuracao configuracao;
@@ -126,7 +141,8 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
             //primeira linha: configuracoes gerais
             if (tokens.size() < 3)
             {
-                throw std::runtime_error("Linha " + std::to_string(numeroLinha) + ": Cabecalho invalido. Esperados 3 campos (algoritmo;quantum;quantidadeCPUs).");
+                // NOVO: Registra erro de quantidade insuficiente de colunas no cabecalho
+                notificarEErro("Linha " + std::to_string(numeroLinha) + ": Cabecalho invalido. Esperados 3 campos (algoritmo;quantum;quantidadeCPUs). Encontrados: " + std::to_string(tokens.size()));
             }
 
             //algoritmo
@@ -143,7 +159,8 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
             }
             else
             {
-                throw std::runtime_error("Linha " + std::to_string(numeroLinha) + ": Algoritmo desconhecido: " + tokens[0]);
+                // NOVO: Registra erro de algoritmo desconhecido informado no cabecalho
+                notificarEErro("Linha " + std::to_string(numeroLinha) + ": Algoritmo desconhecido: '" + tokens[0] + "'. Esperado 'RM' ou 'EDF'.");
             }
 
             //quantum
@@ -154,7 +171,8 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
 
             if (configuracao.quantidadeCPUs < 1)
             {
-                throw std::runtime_error("Linha " + std::to_string(numeroLinha) + ": A quantidade de CPUs deve ser maior ou igual a 1.");
+                // NOVO: Registra erro quando a quantidade de CPUs e menor que 1
+                notificarEErro("Linha " + std::to_string(numeroLinha) + ": A quantidade de CPUs deve ser maior ou igual a 1. Valor informado: " + std::to_string(configuracao.quantidadeCPUs));
             }
 
             cabecalhoLido = true;
@@ -164,7 +182,8 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
             //resto sao as tarefas
             if (tokens.size() < 6)
             {
-                throw std::runtime_error("Linha " + std::to_string(numeroLinha) + ": Tarefa invalida. Esperados pelo menos 6 campos (id;cor;ingresso;duracao;periodo;prazo).");
+                // NOVO: Registra erro quando a linha da tarefa contem menos colunas do que o exigido
+                notificarEErro("Linha " + std::to_string(numeroLinha) + ": Tarefa invalida. Esperados pelo menos 6 campos (id;cor;ingresso;duracao;periodo;prazo). Encontrados: " + std::to_string(tokens.size()));
             }
 
             //id
@@ -184,7 +203,8 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
 
             if (periodo < 0)
             {
-                throw std::runtime_error("Linha " + std::to_string(numeroLinha) + ": Periodo invalido (" + std::to_string(periodo) + "). Valores menores que zero sao erros no arquivo.");
+                // NOVO: Registra erro para periodo negativo no arquivo
+                notificarEErro("Linha " + std::to_string(numeroLinha) + ": Periodo invalido (" + std::to_string(periodo) + "). Valores menores que zero sao erros no arquivo.");
             }
 
             //prazo
@@ -202,7 +222,8 @@ Configuracao Leitor::lerArquivo(const std::string& caminho)
 
     if (!cabecalhoLido || configuracao.tarefas.empty())
     {
-        throw std::runtime_error("O arquivo de configuracao deve conter o cabecalho e pelo menos uma tarefa valida.");
+        // NOVO: Registra erro caso o arquivo esteja vazio ou nao possua nenhuma tarefa valida
+        notificarEErro("O arquivo de configuracao deve conter o cabecalho e pelo menos uma tarefa valida.");
     }
 
     return configuracao;

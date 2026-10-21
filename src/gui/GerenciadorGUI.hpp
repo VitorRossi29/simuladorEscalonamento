@@ -10,6 +10,7 @@
 //Forward Declaration para avisar que a classe existe
 class MotorSimulacao;
 
+
 //Essa classe eh o controlador principal da GUI. Ele eh dono das 
 //instancias dos paineis e dos dados da simulacao em memoria
 class GerenciadorGUI
@@ -51,9 +52,11 @@ private:
 	int m_modoExecucaoAnterior;
 	int m_algoritmoSelecionado;
 
-	int m_quantidadeCPUsAnterior, m_quantumAnterior, m_algoritmoAnterior;
-
 	std::string m_algoritmo;
+
+	int m_quantidadeCPUsAnterior, m_quantumAnterior, m_algoritmoAnterior;
+	std::string m_algoritmoAnteriorString;
+
 	std::string caminhoArquivo;
 	std::string caminhoArquivoAnterior;
 

@@ -147,7 +147,7 @@ void Tarefa::resetaCor()
 	static std::random_device rd;
 	static std::mt19937 gen(rd());
 
-	// Evita tons extremamente escuros para não sumir no fundo do Gantt (dígitos de 3 a F)
+	// Evita tons extremamente escuros para nao sumir no fundo do Gantt (dígitos de 3 a F)
 	const char caracteres[] = "3456789ABCDEF";
 	std::uniform_int_distribution<int> disCaracter(0, 12);
 

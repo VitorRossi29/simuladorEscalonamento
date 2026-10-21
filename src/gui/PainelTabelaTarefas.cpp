@@ -1,7 +1,7 @@
 #include "PainelTabelaTarefas.hpp"
 #include "imgui.h"
 #include <cstring>
-
+#include "GerenciadorGUI.hpp"
 
 // Funcao utilitaria para converter a enum class em texto formatado para o ImGui
 const char* estadoParaString(EstadoTarefa estado)
@@ -19,23 +19,10 @@ const char* estadoParaString(EstadoTarefa estado)
 // Retorna verdadeiro se a transicao entre os estados for semanticamente valida
 bool validarTransicaoEstado(EstadoTarefa atual, EstadoTarefa novo, std::string& mensagemErro)
 {
-    if (novo == EstadoTarefa::DEADLINE_PERDIDA)
-    {
-        mensagemErro = "DEADLINE_PERDIDA eh um evento automatico do sistema e nao pode ser definido manualmente.";
-        return false;
-    }
-
-    if (atual == EstadoTarefa::NOVA)
-    {
-        if (novo == EstadoTarefa::PRONTA) return true;
-        mensagemErro = "Uma tarefa NOVA so pode transicionar para o estado PRONTA (admissao no sistema).";
-        return false;
-    }
-
     if (atual == EstadoTarefa::PRONTA)
     {
-        if (novo == EstadoTarefa::EXECUTANDO || novo == EstadoTarefa::SUSPENSA) return true;
-        mensagemErro = "Uma tarefa PRONTA so pode ir para EXECUTANDO (alocada na CPU) ou SUSPENSA.";
+        if (novo == EstadoTarefa::EXECUTANDO) return true;
+        mensagemErro = "Uma tarefa PRONTA so pode ir para EXECUTANDO (alocada na CPU).";
         return false;
     }
 
@@ -46,7 +33,7 @@ bool validarTransicaoEstado(EstadoTarefa atual, EstadoTarefa novo, std::string& 
         return false;
     }
 
-    if (atual == EstadoTarefa::SUSPENSA) // ALTERAcaO: Validacao para o estado SUSPENSA
+    if (atual == EstadoTarefa::SUSPENSA) // Validacão rigorosa para o estado SUSPENSA
     {
         if (novo == EstadoTarefa::PRONTA) return true;
         mensagemErro = "Uma tarefa SUSPENSA so pode voltar para o estado PRONTA.";
@@ -124,8 +111,6 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
 {
     int idParaRemover = -1;
     bool editouAlgumCampo = false;
-    static bool exibirModalErro = false;
-    static std::string mensagemErroTransicao = "";
 
     // Abre a tabela com 8 colunas
     if (ImGui::BeginTable("TabelaTarefasSimulacao", 8, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
@@ -184,9 +169,8 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
                 editouAlgumCampo = true;
 
             // Coluna 6: Estado Atual no Tick
-            //Busca o estado da tarefa no snapshot do tick atual
+            // Busca o estado da tarefa no snapshot do tick atual
             ImGui::TableNextColumn();
-
 
             EstadoTarefa estadoAtual = EstadoTarefa::PRONTA;
             if (snapshotAtual != nullptr)
@@ -201,11 +185,11 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
                 }
             }
 
-            const char* opcoesEstados[] = { "NOVA", "PRONTA", "EXECUTANDO", "SUSPENSA", "TERMINADA" };
-            EstadoTarefa mapaEstadosEnum[] = { EstadoTarefa::NOVA, EstadoTarefa::PRONTA, EstadoTarefa::EXECUTANDO, EstadoTarefa::SUSPENSA, EstadoTarefa::TERMINADA };
+            const char* opcoesEstados[] = { "PRONTA", "EXECUTANDO", "SUSPENSA", "TERMINADA" };
+            EstadoTarefa mapaEstadosEnum[] = { EstadoTarefa::PRONTA, EstadoTarefa::EXECUTANDO, EstadoTarefa::SUSPENSA, EstadoTarefa::TERMINADA };
 
-            int itemSelecionadoIndex = 1; // Padrao PRONTA
-            for (int e = 0; e < 5; e++)
+            int itemSelecionadoIndex = 0; // Padrao PRONTA
+            for (int e = 0; e < 4; e++)
             {
                 if (mapaEstadosEnum[e] == estadoAtual)
                 {
@@ -215,7 +199,7 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
             }
 
             ImGui::SetNextItemWidth(-1);
-            if (ImGui::Combo("##EstadoCombo", &itemSelecionadoIndex, opcoesEstados, 5))
+            if (ImGui::Combo("##EstadoCombo", &itemSelecionadoIndex, opcoesEstados, 4))
             {
                 EstadoTarefa novoEstadoProposto = mapaEstadosEnum[itemSelecionadoIndex];
 
@@ -230,17 +214,16 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
                     }
                     else
                     {
-                        // Bloqueia a alteracao e exibe o aviso ao usuario (Requisito 3.4)
-                        mensagemErroTransicao = erro;
-                        exibirModalErro = true;
-                        ImGui::OpenPopup("Transicao de Estado Invalida");
+                        // NOVO: Em vez de abrir o Popup Modal, registra o erro diretamente no Console de Logs estático
+                        std::string msgLog = "Tabela - Tarefa " + std::to_string(tarefa.id) + ": Transicao de estado invalida. " + erro;
+                        GerenciadorGUI::registrarLog(GerenciadorGUI::TipoLog::ERRO, msgLog);
                     }
                 }
             }
 
             // Coluna 7: Botao de Remover
             ImGui::TableNextColumn();
-            if (ImGui::Button("Remover")) 
+            if (ImGui::Button("Remover"))
             {
                 idParaRemover = tarefa.id;
             }
@@ -255,7 +238,7 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
 
     if (idParaRemover != -1)
     {
-        //procura o id para remover
+        // Procura o id para remover
         for (size_t i = 0; i < m_tarefasRef->size(); i++)
         {
             if ((*m_tarefasRef)[i].id == idParaRemover)
@@ -265,21 +248,6 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
                 break;
             }
         }
-    }
-
-    if (ImGui::BeginPopupModal("Transicao de Estado Invalida", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
-        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Erro de Transicao de Estado no RTOS:");
-        ImGui::Separator();
-        ImGui::TextWrapped("%s", mensagemErroTransicao.c_str());
-        ImGui::Spacing();
-
-        if (ImGui::Button("Compreendido", ImVec2(120, 0)))
-        {
-            ImGui::CloseCurrentPopup();
-            exibirModalErro = false;
-        }
-        ImGui::EndPopup();
     }
 
     // Se nao houve alteracao retorna falso
@@ -373,6 +341,7 @@ bool PainelTabelaTarefas::desenharFormularioInsercao()
 
         return true; // Retorna true para atualizar e recalcular a simulacao
     }
+    ImGui::Text("O botao a cima permite criar tarefas com valores definidos pelo sistema!");
     return false;
 }
 

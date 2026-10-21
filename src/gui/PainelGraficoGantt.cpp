@@ -195,6 +195,9 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
             }
             else if (snapCerto->estado == EstadoTarefa::SUSPENSA)
             {
+                //Convertendo cor
+                ImU32 corTrenteDeux = hexParaImU32(tarefasOrdenadas[i].cor);
+
                 //Fundo preto
                 listaDesenhos->AddRectFilled(posicaoMin, posicaoMax, IM_COL32(0, 0, 0, 255));
 
@@ -214,7 +217,7 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
                     ImVec2 p1(posicaoMin.x + offset, posicaoMin.y);
                     ImVec2 p2(posicaoMin.x + offset + altura, posicaoMax.y);
 
-                    listaDesenhos->AddLine(p1, p2, IM_COL32(180, 180, 180, 255), 1.0f);
+                    listaDesenhos->AddLine(p1, p2, corTrenteDeux, 1.0f);
                 }
 
                 //Remocao da mascara de corte
@@ -227,6 +230,8 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
                 listaDesenhos->AddRectFilled(posicaoMin, posicaoMax, IM_COL32(45, 45, 45, 255));
                 // Borda cinza bem fina/discreta
                 listaDesenhos->AddRect(posicaoMin, posicaoMax, IM_COL32(70, 70, 70, 150));
+                // Traco preto transversal
+                listaDesenhos->AddLine(posicaoMin, posicaoMax, IM_COL32(0, 0, 0, 255), 2.0f);
             }
             else
             {
@@ -351,7 +356,7 @@ void PainelGraficoGantt::desenharEventosESinais(ImDrawList* listaDesenhos, ImVec
                 float xMinCell = inicio.x + m_margemEsquerda + (t * m_larguraTick);
                 float raio = 9.0f;
 
-                // ALTERAcaO/CORREcaO (Deslocamento nas Bordas):
+
                 // LIGOU: Posicionado no lado esquerdo do tick (início da execucao)
                 // DESLIGOU: Posicionado no lado direito do tick (término da execucao/início do desligamento)
                 float xCentro = ligou ? (xMinCell + 14.0f) : (xMinCell + m_larguraTick - 14.0f);
@@ -598,6 +603,29 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
             }
             else if (snapCerto->estado == EstadoTarefa::SUSPENSA)
             {
+                std::string corHex = t_Ord[i].cor;
+
+                unsigned int r, g, b;
+
+                if (!corHex.empty())
+                {
+                    //remove o # se precisar para evitar falha no sscanf
+                    const char* hexStr = corHex.c_str();
+                    if (hexStr[0] == '#')
+                        hexStr++;
+
+                    //separa os 2 digitos de cada cor e atribui seu valor a cor relevante
+                    unsigned int hexVal = 0;
+                    if (sscanf(hexStr, "%x", &hexVal) == 1)
+                    {
+                        r = (hexVal >> 16) & 0xFF; //2 digitos da esquerda
+                        g = (hexVal >> 8) & 0xFF; //2 digitos do meio
+                        b = hexVal & 0xFF; //2 digitos da direita
+                    }
+                }
+
+                Color cor = { static_cast<unsigned char>(r), static_cast<unsigned char>(g), static_cast<unsigned char>(b), 255 };
+
                 DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), BLACK);
 
                 BeginScissorMode(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha));
@@ -606,7 +634,7 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
                 {
                     Vector2 p1{ x + offset, y };
                     Vector2 p2{ x + offset + m_alturaLinha, y + m_alturaLinha };
-                    DrawLineEx(p1, p2, 1.0f, LIGHTGRAY);
+                    DrawLineEx(p1, p2, 1.0f, cor);
                 }
                 EndScissorMode();
 
@@ -614,6 +642,11 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
             }
             else if (snapCerto->estado == EstadoTarefa::TERMINADA)
             {
+                Vector2 posicao1{ x, y };
+                Vector2 posicao2{ x+m_larguraTick, y + m_larguraTick};
+
+                DrawLineEx(posicao1, posicao2, 2.0f, BLACK);
+
                 Color cinzaEscuro = Color{ 45, 45, 45, 255 };
                 DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), cinzaEscuro);
                 DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(m_larguraTick), static_cast<int>(m_alturaLinha), DARKGRAY);
@@ -782,15 +815,16 @@ void PainelGraficoGantt::renderizar()
         ImGui::Text("ESTADOS DAS TAREFAS:");
         ImGui::Text("Executando: Representado pelo retangulo preenchido por uma cor.");
         ImGui::Text("Pronta: Representado pelo retangulo com contorno mas nao preenchido. A tarefa quando esta pronta para executar mas nao esta executando");
-        ImGui::Text("Suspensa: Representado pelo retangulo preto e com hachuras na diagonal. Quando a tarefa ainda nao esta pronta para executar.");
+        ImGui::Text("Suspensa: Representado pelo retangulo de fundo preto e com hachuras da cor da tarefa. Quando a tarefa ainda nao esta pronta para executar.");
+        ImGui::Text("Terminada: Representado pelo retangulo com cor cinza e um traco diagonal preto. Quando a tarefa nao vai mais executar.");
         ImGui::Text("EVENTOS DE ESCALONAMENTO:");
         ImGui::Text("Ingresso: Quando uma tarefa entra na fila de prontos, aparece uma seta verde para baixo");
         ImGui::Text("Conclusao: Quando uma tarefa conclui um ciclo de execucao, aparece uma seta azul para cima.");
         ImGui::Text("Estouro de Deadline: Quando uma tarefa perde seu prazo, aparece um X vermelho.");
         ImGui::Text("Sorteio de Desempate: Quando ocorre um sorteio para definir qual tarefa sera executada, aparece um circulo amarelo!");
         ImGui::Text("SINAIS DE ESTADO DA CPU:");
-        ImGui::Text("Circulo Verde com ID na linha da CPU: A CPU indicada pelo numero entrou no estado EXECUTANDO (LIGOU) neste tick.");
-        ImGui::Text("Circulo Vermelho com ID na linha da CPU: A CPU indicada pelo numero ficou sem tarefa e passou para o estado DESLIGADA neste tick.");
+        ImGui::Text("Circulo Verde com ID na linha da CPU: A CPU indicada pelo numero entrou no estado executando neste tick.");
+        ImGui::Text("Circulo Vermelho com ID na linha da CPU: A CPU indicada pelo numero ficou sem tarefa e passou para o estado desligada neste tick.");
     }
 
     ImGui::End();

@@ -46,6 +46,7 @@ GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 	m_quantumAnterior(m_quantum),
 	m_algoritmoAnterior(m_algoritmoSelecionado),
 	m_fonteDadosAnterior(fonteDados),
+	m_algoritmoAnteriorString(m_algoritmo),
 
 	querUtilizacao(false),
 	utilizacaoCPU(0.0f),
@@ -225,7 +226,7 @@ void GerenciadorGUI::renderizar()
 	int ticksOciosos = 0;
 
 	//Validacao dos limites de tempo
-	if (!m_historico.empty() && m_tickAtual >= 0 && m_tickAtual < static_cast<int>(m_historico.size()) )
+	if (!m_historico.empty() && m_tickAtual >= 0 && m_tickAtual < static_cast<int>(m_historico.size()))
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -234,7 +235,7 @@ void GerenciadorGUI::renderizar()
 				ImGui::MenuItem("Tabela de Tarefas", NULL, &m_exibirTabela);
 				ImGui::MenuItem("Painel de Configuracao", NULL, &m_exibirConfig);
 				ImGui::MenuItem("Painel de Controle", NULL, &m_exibirControles);
-				ImGui::MenuItem("Grafico de Gantt", NULL, &m_exibirGantt);
+				//ImGui::MenuItem("Grafico de Gantt", NULL, &m_exibirGantt);
 				ImGui::MenuItem("Console de Logs", NULL, &m_exibirLogs);
 				ImGui::EndMenu();
 			}
@@ -246,9 +247,9 @@ void GerenciadorGUI::renderizar()
 
 		// Desenho Sequencial dos Paineis
 		if (m_exibirConfig)
-			configAlteradaNoPainel = m_painelConfig.renderizar();	
+			configAlteradaNoPainel = m_painelConfig.renderizar();
 
-		if(m_exibirControles)
+		if (m_exibirControles)
 			m_painelControles.renderizar();
 
 		if (m_exibirTabela)
@@ -271,7 +272,7 @@ void GerenciadorGUI::renderizar()
 				}
 			}
 		}
-			
+
 		if (m_exibirGantt)
 			m_painelGantt.renderizar();
 
@@ -280,14 +281,14 @@ void GerenciadorGUI::renderizar()
 
 
 		// Checa se houve mudanca estrutural no arquivo
-
 		bool mudancaNoArquivo = (configAlteradaNoPainel && (caminhoArquivo != caminhoArquivoAnterior));
 
-		// Checa se algum atributo que mudou eh do tipo que exige resetar a simulacao
+		// Detecta se o algoritmo de escalonamento mudou no Painel de Configuracao
+		bool mudancaAlgoritmo = (m_algoritmo != m_algoritmoAnteriorString);
 
+		// Checa se algum atributo estrutural mudou (exige resetar a simulacao para o tick 0)
 		bool mudancaDeParametrosGlobais = (m_quantidadeCPUs != m_quantidadeCPUsAnterior ||
 			m_quantum != m_quantumAnterior ||
-			m_algoritmoSelecionado != m_algoritmoAnterior ||
 			m_modoExecucao != m_modoExecucaoAnterior ||
 			fonteDados != m_fonteDadosAnterior);
 
@@ -298,8 +299,27 @@ void GerenciadorGUI::renderizar()
 			// Carrega o arquivo, reseta o motor e zera m_tickAtual
 			carregarArquivoEncontrado();
 		}
-		else if (mudancaDeParametrosGlobais)	// Mudanca que afeta todas as tarefas
+		else if (mudancaDeParametrosGlobais)	// Mudanca estrutural (ex: CPUs) exige resetar para o tick 0
 		{
+			// Notifica o usuário via Log AVISO sobre qual alteracao causou o reset da simulacao
+			if (m_quantidadeCPUs != m_quantidadeCPUsAnterior)
+			{
+				registrarLog(TipoLog::AVISO, "Quantidade de CPUs alterada de " + std::to_string(m_quantidadeCPUsAnterior) + " para " + std::to_string(m_quantidadeCPUs) + ". A simulacao foi resetada para o tick 0.");
+			}
+			if (m_quantum != m_quantumAnterior)
+			{
+				registrarLog(TipoLog::AVISO, "Valor do Quantum alterado de " + std::to_string(m_quantumAnterior) + " para " + std::to_string(m_quantum) + ". A simulacao foi resetada para o tick 0.");
+			}
+			if (m_modoExecucao != m_modoExecucaoAnterior)
+			{
+				registrarLog(TipoLog::AVISO, "Modo de execucao alterado. A simulacao foi resetada para o tick 0.");
+			}
+			if (fonteDados != m_fonteDadosAnterior)
+			{
+				std::string nomeFonte = (fonteDados == ModoFonteDados::MOCK) ? "Dados Simulados (Mock)" : "Motor Real (Engine)";
+				registrarLog(TipoLog::AVISO, "Fonte de dados alterada para " + nomeFonte + ". A simulacao foi resetada para o tick 0.");
+			}
+
 			recalcularSimulacao();
 			// Zera os ticks
 			m_tickAtual = 0;
@@ -307,38 +327,27 @@ void GerenciadorGUI::renderizar()
 			//Atualiza as variaveis que afetam todas as tarefas
 			m_quantidadeCPUsAnterior = m_quantidadeCPUs;
 			m_quantumAnterior = m_quantum;
-			m_algoritmoAnterior = m_algoritmoSelecionado;
+			m_algoritmoAnteriorString = m_algoritmo; // Atualiza a string do algoritmo
 			m_modoExecucaoAnterior = m_modoExecucao;
 			m_fonteDadosAnterior = fonteDados;
 		}
-
-		/*
-		bool tarefasMudaram = (numeroTarefas != static_cast<int>(m_tarefas.size()));
-
-		if (configAlteradaNoPainel || tarefasMudaram || valoresMudaram)
+		else if (mudancaAlgoritmo) // NOVO: Alteracao dinâmica de algoritmo no meio do processo
 		{
-			if (configAlteradaNoPainel)
+			m_algoritmoAnteriorString = m_algoritmo; // Atualiza o rastreador da string
+
+			if (m_tickAtual == 0)
 			{
-				if (caminhoArquivo != caminhoArquivoAnterior)
-				{
-					caminhoArquivoAnterior = caminhoArquivo;
-					carregarArquivoEncontrado();
-				}
+				// Se a simulacao estiver no início, recalcula do zero
+				recalcularSimulacao();
 			}
-
-			recalcularSimulacao();
-
-			//Reset da agulha de tempo
-			m_tickAtual = 0;
-			//recalcularHistorico();
-
-			// Atualiza os rastreadores de estado
-			m_quantidadeCPUsAnterior = m_quantidadeCPUs;
-			m_quantumAnterior = m_quantum;
-			m_algoritmoAnterior = m_algoritmoSelecionado;
-			m_modoExecucaoAnterior = m_modoExecucao;
-			m_fonteDadosAnterior = fonteDados;
-		} */
+			else
+			{
+				// Se estiver no meio da simulacao (tick > 0), preserva o histórico passado 
+				// e reescalona o futuro a partir do tick atual com o novo algoritmo escolhido
+				GerenciadorGUI::registrarLog(TipoLog::INFO, "Algoritmo alterado para " + m_algoritmo + " no tick " + std::to_string(m_tickAtual) + ". Reescalonando o futuro.");
+				reescalonarAPartirDoTickAtual();
+			}
+		}
 
 		if (m_solicitarExportacao)
 		{
@@ -372,78 +381,122 @@ void GerenciadorGUI::renderizar()
 								ticksOciosos++;
 							}
 						}
-						
 					}
 
 					//  Calcula a porcentagem de ociosidade EM RELACAO AO PODER TOTAL DE TODAS AS CPUS
 					if (totalSlotsCPU > 0)
 					{
-						tempoOciosoPercentual = ( ((float)(ticksOciosos)) / ((float)(totalSlotsCPU)) ) * 100.0f;
+						tempoOciosoPercentual = (((float)(ticksOciosos)) / ((float)(totalSlotsCPU))) * 100.0f;
 					}
 				}
 			}
-			if(fonteDados == ModoFonteDados::ENGINE_REAL)
+			if (fonteDados == ModoFonteDados::ENGINE_REAL)
 				m_painelConfig.renderizarMetricas(m_tarefas, utilizacao, escalonavel, totalDeadlines, tempoOciosoPercentual);
 		}
-		
 	}
 }
 
 void GerenciadorGUI::carregarArquivoEncontrado()
 {
-	// Instanciacao local do leitor
-	Leitor leitor;
-	Configuracao config = leitor.lerArquivo(caminhoArquivo);
-
-	// Atualizacao do estado na GUI
-	m_quantidadeCPUs = config.quantidadeCPUs;
-	m_quantum = config.quantum;
-	TipoAlgoritmo tipodesse = config.algoritmo;
-
-	if (tipodesse == TipoAlgoritmo::RATE_MONOTONIC)
-		m_algoritmo = "RM";
-	else if (tipodesse == TipoAlgoritmo::EARLIEST_DEADLINE_FIRST)
-		m_algoritmo = "EDF";
-	else
-		m_algoritmo = "Outro";
-
-	// Limpa os vetores do GUI e do motor
-	m_tarefas.clear();
-	m_motor->limparTarefas();
-
-	const std::vector<std::string> paletaCores = {
-		"#FF5733", "#33FF57", "#3357FF", "#F39C12",
-		"#8E44AD", "#1ABC9C", "#D35400", "#2C3E50"
-	};
-
-	// Converte as tarefas lidas do arquivo em TarefaGUI no vetor m_tarefas
-	for (size_t i = 0; i < config.tarefas.size(); i++)
+	// Bloco try/catch para capturar falhas de abertura ou sintaxe do arquivo sem travar o sistema
+	try
 	{
-		Tarefa& t = config.tarefas[i];
+		// Instanciacao local do leitor
+		Leitor leitor;
+		Configuracao config = leitor.lerArquivo(caminhoArquivo);
 
-		if (t.getCor().empty() || t.getCor() == "\0" || t.getCor() == "null")
+		if(caminhoArquivoAnterior != "")
+			registrarLog(TipoLog::AVISO, "Novo arquivo carregado ('" + caminhoArquivo + "'). A simulacao foi resetada para o tick 0.");
+
+		// GARANTIA: Forca a fonte de dados para o Motor Real (ENGINE_REAL) para que a GUI exiba os dados lidos
+		fonteDados = ModoFonteDados::ENGINE_REAL;
+		m_fonteDadosAnterior = ModoFonteDados::ENGINE_REAL;
+
+		// Atualizacao do estado na GUI
+		m_quantidadeCPUs = config.quantidadeCPUs;
+		m_quantidadeCPUsAnterior = m_quantidadeCPUs;
+
+		m_quantum = config.quantum;
+		m_quantumAnterior = m_quantum;
+
+		TipoAlgoritmo tipodesse = config.algoritmo;
+
+		if (tipodesse == TipoAlgoritmo::RATE_MONOTONIC)
 		{
-			std::string corNova = paletaCores[i % paletaCores.size()];
-			t.setCor(corNova);
+			m_algoritmo = "RM";
+			m_algoritmoSelecionado = 0;
+		}
+		else if (tipodesse == TipoAlgoritmo::EARLIEST_DEADLINE_FIRST)
+		{
+			m_algoritmo = "EDF";
+			m_algoritmoSelecionado = 1;
+		}
+		else
+		{
+			m_algoritmo = "Outro";
+			m_algoritmoSelecionado = 2;
+		}
+		m_algoritmoAnterior = m_algoritmoSelecionado;
+
+		// Limpa os vetores do GUI e do motor
+		m_tarefas.clear();
+		m_motor->limparTarefas();
+
+		const std::vector<std::string> paletaCores = {
+			"#FF5733", "#33FF57", "#3357FF", "#F39C12",
+			"#8E44AD", "#1ABC9C", "#D35400", "#2C3E50"
+		};
+
+		// Converte as tarefas lidas do arquivo e POPULA O VETOR m_tarefas (GUI)
+		for (size_t i = 0; i < config.tarefas.size(); i++)
+		{
+			Tarefa& t = config.tarefas[i];
+
+			TarefaGUI tGUI;
+			tGUI.id = t.getId();
+			tGUI.duracao = t.getDuracao();
+			tGUI.periodo = t.getPeriodo();
+			tGUI.prazo = t.getPrazo();
+			tGUI.ingresso = t.getIngresso();
+			tGUI.prioridade = t.getPrioridade();
+
+			std::string corValida = t.getCor();
+			if (corValida.empty() || corValida == "\0" || corValida == "null")
+			{
+				corValida = paletaCores[i % paletaCores.size()];
+			}
+			strncpy(tGUI.cor, corValida.c_str(), sizeof(tGUI.cor) - 1);
+			tGUI.cor[sizeof(tGUI.cor) - 1] = '\0';
+
+			// As tarefas devem ser inseridas em m_tarefas (vetor da GUI),
+			// e NaO diretamente no m_motor, pois a chamada atualizarTarefasNaEngine() limpa o m_motor!
+			m_tarefas.push_back(tGUI);
 		}
 
-		m_motor->addTarefa(t);
+		// Prepara os parâmetros no motor
+		m_tickAtual = 0;
+		m_motor->setAlgoritmo(config.algoritmo);
+		m_motor->setQuantidadeCPUs(m_quantidadeCPUs);
+		m_motor->setQuantum(m_quantum);
+
+		// Chama atualizarTarefasNaEngine para "corrigir" m_tarefas com o validarTarefa() 
+		// e repassar os dados de m_tarefas para o motor antes de simular
+		atualizarTarefasNaEngine();
+
+		// Reinicio da simulacao
+		m_motor->resetSimulacao();
+		m_motor->executaTempoReal();
+
+		sincronizarComEngine();
+
+		// Registra sucesso no console de logs
+		registrarLog(TipoLog::INFO, "Arquivo '" + caminhoArquivo + "' carregado com sucesso (" + std::to_string(m_tarefas.size()) + " tarefas).");
 	}
-
-	// Chama atualizarTarefasNaEngine para "corrigir" m_tarefas com o validarTarefa() 
-	// e repassar os dados corretos para o motor antes de simular
-	m_tickAtual = 0;
-	m_motor->setAlgoritmo(config.algoritmo);
-	m_motor->setQuantidadeCPUs(m_quantidadeCPUs);
-	m_motor->setQuantum(m_quantum);
-
-	atualizarTarefasNaEngine();
-
-	// Reinicio da simulacao
-	m_motor->resetSimulacao();
-	m_motor->executaTempoReal();
-
-	sincronizarComEngine();
+	catch (const std::exception& e)
+	{
+		// Registra erro no console de logs caso o arquivo nao exista ou possua sintaxe invalida
+		registrarLog(TipoLog::ERRO, "Falha ao carregar arquivo '" + caminhoArquivo + "': " + std::string(e.what()));
+	}
 }
 
 void GerenciadorGUI::recalcularSimulacao()
@@ -884,7 +937,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 	{
 		idBase = m_tarefas.back().id + 1;
 	}
-	
+
 	if (t.id < 0)	// ID NEGATIVO EH PROIBIDO
 	{
 		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": ID negativo. Ajustado para " + std::to_string(idBase));
@@ -900,7 +953,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 			// Fazemos o primeiro teste para impedir de comparar com si propria
 			if (&t != &m_tarefas.at(i) && t.id == m_tarefas.at(i).id)		// ID REPETIDO EH PROIBIDO
 			{
-				registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": ID repetido (" + std::to_string(t.ingresso) + "). Ajustado para 0" + std::to_string(m_tarefas.at(i).id + 1) );
+				registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": ID repetido (" + std::to_string(t.ingresso) + "). Ajustado para 0" + std::to_string(m_tarefas.at(i).id + 1));
 				t.id = m_tarefas.at(i).id + 1;
 				teveCorrecao = true;
 				correcao++;
@@ -941,7 +994,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 		registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": Ingresso negativo (" + std::to_string(t.ingresso) + "). Ajustado para 0.");
 		t.ingresso = 0;
 		teveCorrecao = true;
-	}	
+	}
 
 	// Duracao maior que o Periodo 
 	if (t.duracao > t.periodo)
@@ -968,21 +1021,47 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 	}
 
 
-	// Validacao de ver ser a cor eh valida
-	bool corInvalida = false;
+	// TRATAMENTO DA COR HEXADECIMAL
+
 	size_t tamCor = std::strlen(t.cor);
 
-	// Deve ter exatamente 7 caracteres e começar com '#'
+	// Se o arquivo/usuário informou a cor no formato de 6 caracteres sem '#' (ex: "FF5733"),
+	// normalizamos adicionando o '#' automaticamente para o renderizador sem registrar log de erro.
+	if (tamCor == 6)
+	{
+		bool todosHex = true;
+		for (size_t k = 0; k < 6; k++)
+		{
+			if (!std::isxdigit(static_cast<unsigned char>(t.cor[k])))
+			{
+				todosHex = false;
+				break;
+			}
+		}
+
+		if (todosHex)
+		{
+			char bufferCor[8];
+			snprintf(bufferCor, sizeof(bufferCor), "#%s", t.cor);
+			strncpy(t.cor, bufferCor, sizeof(t.cor) - 1);
+			t.cor[sizeof(t.cor) - 1] = '\0';
+			tamCor = std::strlen(t.cor); // Atualiza para 7 caracteres
+		}
+	}
+
+	// Validacao de ver se a cor final no formato #RRGGBB eh valida
+	bool corInvalida = false;
+
+	// Deve ter exatamente 7 caracteres e comecar com '#'
 	if (tamCor != 7 || t.cor[0] != '#')
 	{
 		corInvalida = true;
 	}
 	else
 	{
-		// Verifica se os 6 caracteres seguintes sao digitos validos
+		// Verifica se os 6 caracteres seguintes sao digitos hexadecimais validos
 		for (size_t k = 1; k < 7; k++)
 		{
-			// isxdigit() verifica se um caracter eh um digito hexadecimal (os que podem)
 			if (!std::isxdigit(static_cast<unsigned char>(t.cor[k])))
 			{
 				corInvalida = true;
@@ -1018,14 +1097,14 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 	{
 		std::string corAntiga = t.cor;
 
-		// Paleta de cores distintas para substituição
+		// Paleta de cores distintas para substituicao
 		const std::vector<std::string> paletaCoresReserva = {
 			"#FF5733", "#33FF57", "#3357FF", "#F39C12",
 			"#8E44AD", "#1ABC9C", "#D35400", "#2C3E50",
 			"#E74C3C", "#3498DB", "#2ECC71", "#F1C40F"
 		};
 
-		// Procura uma cor da paleta que ainda não esteja em uso por nenhuma outra tarefa
+		// Procura uma cor da paleta que ainda nao esteja em uso por nenhuma outra tarefa
 		std::string novaCorEncontrada = "";
 		for (const auto& corOpcao : paletaCoresReserva)
 		{
