@@ -1080,8 +1080,13 @@ void GerenciadorGUI::screenShotAvancada()
 			}
 			else if (snapCerto->estado == EstadoTarefa::TERMINADA)
 			{
+				// Fundo cinza-escuro sólido
 				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha 
 					<< "\" fill=\"#2D2D2D\" stroke=\"#464646\" stroke-width=\"1\"/>\n";
+
+				// Traço diagonal preto cruzando o bloco de ponta a ponta
+				svg << "<line x1=\"" << x << "\" y1=\"" << (y + alturaLinha) << "\" x2=\"" << (x + larguraTick) << "\" y2=\"" << y 
+					<< "\" stroke=\"#000000\" stroke-width=\"1.5\"/>\n";
 			}
 		}
 
