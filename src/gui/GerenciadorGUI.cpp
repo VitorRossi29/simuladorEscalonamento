@@ -903,16 +903,16 @@ void GerenciadorGUI::screenShotAvancada()
 	int numTarefas = static_cast<int>(m_tarefas.size());
 	int totalCpus = (m_quantidadeCPUs != 0) ? m_quantidadeCPUs : 1;
 
-	// Dimens�es do gr�fico vetorial (ajustadas para dar espa�o �s CPUs no topo)
+	// Dimensões do gráfico vetorial
 	float larguraTick = 70.0f;
 	float alturaLinha = 40.0f;
 	float margemEsq = 90.0f;
-	float margemTopo = 50.0f + (totalCpus * 25.0f); // Espa�o din�mico para as linhas das CPUs
+	float margemTopo = 50.0f + (totalCpus * 25.0f);
 
 	float larguraTotal = margemEsq + (totalTicks * larguraTick) + 50.0f;
 	float alturaTotal = margemTopo + (numTarefas * alturaLinha) + 50.0f;
 
-	std::string prefixo = "../../../resultado_simulacao_gantt";
+	std::string prefixo = "resultado_simulacao_gantt";
 	std::string extensao = ".svg";
 	std::string caminhoFinal = prefixo + extensao;
 
@@ -934,6 +934,24 @@ void GerenciadorGUI::screenShotAvancada()
 	svg << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" << larguraTotal
 		<< "\" height=\"" << alturaTotal << "\" viewBox=\"0 0 " << larguraTotal << " " << alturaTotal << "\">\n";
 
+	// Bloco <defs> para criar padrões de hachura dinâmicos baseados nas cores de cada tarefa
+	svg << "<defs>\n";
+	for (size_t i = 0; i < m_tarefas.size(); i++)
+	{
+		std::string corHex = m_tarefas[i].cor;
+		if (corHex.empty() || corHex[0] != '#') corHex = "#6495ED";
+
+		// Limpa o '#' para usar como ID seguro no SVG
+		std::string idCor = corHex.substr(1);
+
+		// Cria um padrão SVG hachurado único para cada cor de tarefa
+		svg << "<pattern id=\"hachura_" << idCor << "\" width=\"10\" height=\"10\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\">\n";
+		svg << "<rect width=\"10\" height=\"10\" fill=\"#000000\"/>\n"; // Fundo preto do estado suspenso
+		svg << "<line x1=\"0\" y1=\"0\" x2=\"0\" y2=\"10\" stroke=\"" << corHex << "\" stroke-width=\"3\"/>\n";
+		svg << "</pattern>\n";
+	}
+	svg << "</defs>\n";
+
 	svg << "<rect width=\"100%\" height=\"100%\" fill=\"#1E1E1E\"/>\n";
 
 	std::vector<TarefaGUI> t_Ord = m_tarefas;
@@ -943,34 +961,31 @@ void GerenciadorGUI::screenShotAvancada()
 
 	size_t limiteTicks = (m_modoExecucao == 0) ? std::min(static_cast<size_t>(m_tickAtual + 1), m_historico.size()) : m_historico.size();
 
-	// 1. Desenhar as Linhas e R�tulos das CPUs no Topo
+	// 1. Linhas e Rótulos das CPUs no Topo
 	for (int c = 0; c < totalCpus; c++)
 	{
 		int idCpu = c + 1;
 		float yCentro = margemTopo - 30.0f - (c * 22.0f);
 
-		// R�tulo da CPU
 		svg << "<text x=\"15\" y=\"" << (yCentro + 5.0f)
 			<< "\" fill=\"#B4EEB4\" font-family=\"sans-serif\" font-size=\"13\" font-weight=\"bold\">CPU " << idCpu << "</text>\n";
 	}
 
-	// 2. R�gua de Ticks e Linhas Verticais de Grade
+	// 2. Régua de Ticks e Linhas Verticais de Grade
 	for (int t = 0; t < totalTicks; t++)
 	{
 		float x = margemEsq + (t * larguraTick);
 		float yTop = margemTopo;
 		float yBottom = margemTopo + (t_Ord.size() * alturaLinha);
 
-		// Texto do Tick
 		svg << "<text x=\"" << (x + 5.0f) << "\" y=\"" << (margemTopo - 15.0f)
 			<< "\" fill=\"#A0A0A0\" font-family=\"sans-serif\" font-size=\"14\">" << t << "</text>\n";
 
-		// Linha vertical de grade
 		svg << "<line x1=\"" << x << "\" y1=\"" << yTop << "\" x2=\"" << x << "\" y2=\"" << yBottom
 			<< "\" stroke=\"#404040\" stroke-width=\"1\"/>\n";
 	}
 
-	// 3. R�tulos das Tarefas no Eixo Y e Linhas Horizontais
+	// 3. Rótulos das Tarefas no Eixo Y e Linhas Horizontais
 	for (size_t i = 0; i < t_Ord.size(); i++)
 	{
 		float y = margemTopo + (i * alturaLinha);
@@ -985,12 +1000,11 @@ void GerenciadorGUI::screenShotAvancada()
 			<< "\" stroke=\"#404040\" stroke-width=\"1\"/>\n";
 	}
 
-	// 4. Blocos de Execu��o do Gantt e Sinais de Estado das CPUs
+	// 4. Blocos de Execução, Estados e Eventos
 	for (int t = 0; t < static_cast<int>(limiteTicks); t++)
 	{
 		const SnapshotTick& snap = m_historico[t];
 
-		// Indicadores de estado da CPU neste tick espec�fico
 		for (size_t c = 0; c < snap.cpus.size(); c++)
 		{
 			int idCpu = snap.cpus[c].idCpu;
@@ -1021,15 +1035,12 @@ void GerenciadorGUI::screenShotAvancada()
 				float yCentro = margemTopo - 30.0f - (idxCpu * 22.0f);
 				std::string corCirculo = ligou ? "#00B400" : "#DC0000";
 
-				// Desenha o c�rculo indicador (Verde = Ligou, Vermelho = Desligou)
 				svg << "<circle cx=\"" << xCentro << "\" cy=\"" << yCentro << "\" r=\"9\" fill=\"" << corCirculo << "\" stroke=\"#000000\" stroke-width=\"1.5\"/>\n";
-				// Texto do ID da CPU dentro do c�rculo
 				svg << "<text x=\"" << (xCentro - 4.0f) << "\" y=\"" << (yCentro + 4.0f)
 					<< "\" fill=\"#FFFFFF\" font-family=\"sans-serif\" font-size=\"11\" font-weight=\"bold\">" << idCpu << "</text>\n";
 			}
 		}
 
-		// Blocos das tarefas
 		for (size_t i = 0; i < t_Ord.size(); i++)
 		{
 			float x = margemEsq + (t * larguraTick);
@@ -1047,28 +1058,77 @@ void GerenciadorGUI::screenShotAvancada()
 
 			if (!snapCerto) continue;
 
+			std::string corHex = t_Ord[i].cor;
+			if (corHex.empty() || corHex[0] != '#') corHex = "#6495ED";
+			std::string idCor = corHex.substr(1);
+
 			if (snapCerto->estado == EstadoTarefa::EXECUTANDO)
 			{
-				std::string corHex = t_Ord[i].cor;
-				if (corHex.empty() || corHex[0] != '#') corHex = "#6495ED";
-
-				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha
+				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha 
 					<< "\" fill=\"" << corHex << "\" stroke=\"#000000\" stroke-width=\"1\"/>\n";
 			}
 			else if (snapCerto->estado == EstadoTarefa::PRONTA)
 			{
-				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha
+				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha 
 					<< "\" fill=\"none\" stroke=\"#808080\" stroke-width=\"1\"/>\n";
 			}
 			else if (snapCerto->estado == EstadoTarefa::SUSPENSA)
 			{
-				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha
-					<< "\" fill=\"#000000\" stroke=\"#808080\" stroke-width=\"1\"/>\n";
+				// Preenche com o padrão hachurado diagonal utilizando a cor da tarefa e fundo preto
+				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha 
+					<< "\" fill=\"url(#hachura_" << idCor << ")\" stroke=\"#808080\" stroke-width=\"1\"/>\n";
 			}
 			else if (snapCerto->estado == EstadoTarefa::TERMINADA)
 			{
-				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha
+				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha 
 					<< "\" fill=\"#2D2D2D\" stroke=\"#464646\" stroke-width=\"1\"/>\n";
+			}
+		}
+
+		// Eventos Especiais (Ingresso, Conclusão, Deadline, Desempate)
+		for (size_t e = 0; e < snap.eventos.size(); e++)
+		{
+			const EventoGantt& ev = snap.eventos[e];
+
+			int linhaIndex = -1;
+			for (size_t i = 0; i < t_Ord.size(); i++)
+			{
+				if (t_Ord[i].id == ev.idTarefa)
+				{
+					linhaIndex = static_cast<int>(i);
+					break;
+				}
+			}
+
+			if (linhaIndex == -1) continue;
+
+			float x = margemEsq + (t * larguraTick);
+			float y = margemTopo + (linhaIndex * alturaLinha);
+
+			if (ev.tipo == TipoEvento::INGRESSO)
+			{
+				float xEsq = x;
+				float yTopo = y + 12.0f;
+				float yBase = y;
+				svg << "<polygon points=\"" << xEsq << "," << yTopo << " " << (xEsq - 8.0f) << "," << yBase << " " << (xEsq + 8.0f) << "," << yBase << "\" fill=\"#00FF00\"/>\n";
+			}
+			else if (ev.tipo == TipoEvento::DEADLINE_STOURO)
+			{
+				svg << "<line x1=\"" << (x + 4.0f) << "\" y1=\"" << (y + 4.0f) << "\" x2=\"" << (x + larguraTick - 4.0f) << "\" y2=\"" << (y + alturaLinha - 4.0f) << "\" stroke=\"#FF0000\" stroke-width=\"2\"/>\n";
+				svg << "<line x1=\"" << (x + larguraTick - 4.0f) << "\" y1=\"" << (y + 4.0f) << "\" x2=\"" << (x + 4.0f) << "\" y2=\"" << (y + alturaLinha - 4.0f) << "\" stroke=\"#FF0000\" stroke-width=\"2\"/>\n";
+			}
+			else if (ev.tipo == TipoEvento::SORTEIO_DESEMPATE)
+			{
+				float cx = x + (larguraTick / 2.0f);
+				float cy = y + (alturaLinha / 2.0f);
+				svg << "<circle cx=\"" << cx << "\" cy=\"" << cy << "\" r=\"4\" fill=\"#FFD700\"/>\n";
+			}
+			else if (ev.tipo == TipoEvento::CONCLUSAO)
+			{
+				float xDir = x + larguraTick;
+				float yTopo = y - 12.0f;
+				float yBase = y;
+				svg << "<polygon points=\"" << xDir << "," << yTopo << " " << (xDir - 8.0f) << "," << yBase << " " << (xDir + 8.0f) << "," << yBase << "\" fill=\"#0000FF\"/>\n";
 			}
 		}
 	}
