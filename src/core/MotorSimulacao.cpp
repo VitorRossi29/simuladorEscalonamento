@@ -1,7 +1,8 @@
 #include "MotorSimulacao.hpp"
 #include <algorithm>
 #include <random>
-#include "../gui/StructsTeste.hpp"
+#include "../gui/MockData.hpp"
+#include "Tarefa.hpp"
 
 //coloca a tarefa no vetor de tarefas
 void MotorSimulacao::addTarefa(const Tarefa& tarefa)

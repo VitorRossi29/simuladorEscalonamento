@@ -3,6 +3,8 @@
 #include <cstring>
 #include "GerenciadorGUI.hpp"
 
+#include "../core/Tarefa.hpp"
+
 // Funcao utilitaria para converter a enum class em texto formatado para o ImGui
 const char* estadoParaString(EstadoTarefa estado)
 {

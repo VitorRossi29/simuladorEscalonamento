@@ -1,9 +1,8 @@
 #pragma once
 #include <vector>
 #include "Tarefa.hpp"
-#include "Metricas.hpp"
-#include "CPU.hpp"
 #include <cmath>
+#include "CPU.hpp"
 
 struct MotorSimulacao
 {

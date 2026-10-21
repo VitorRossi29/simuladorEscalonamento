@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 #include "MockData.hpp"
-#include "StructsTeste.hpp"
 
 class PainelConfiguracao
 {

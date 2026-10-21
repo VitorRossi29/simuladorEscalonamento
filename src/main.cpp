@@ -5,9 +5,8 @@
 #include "rlImGui.h"
 
 #include "core/Tarefa.hpp"
-#include "core/Metricas.hpp"
+#include "core/CPU.hpp"
 #include "core/MotorSimulacao.hpp"
-
 #include "gui/GerenciadorGUI.hpp"
 
 int main() {

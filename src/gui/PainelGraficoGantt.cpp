@@ -4,6 +4,7 @@
 #include "PainelTabelaTarefas.hpp"
 #include "raylib.h"
 
+
 const char* estadoParaString(EstadoTarefa estado);
 
 
