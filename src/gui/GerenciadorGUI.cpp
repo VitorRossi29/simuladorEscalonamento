@@ -8,6 +8,7 @@
 #include "../reader/Leitor.hpp"
 
 #include <algorithm>
+#include <fstream>
 
 #ifndef ImGuiCol_TabActive
 #define ImGuiCol_TabActive ImGuiCol_HeaderActive
@@ -697,7 +698,7 @@ void GerenciadorGUI::sincronizarComEngine()
 	}
 }
 
-// Caso o grafico de Gantt seja maior que a tela do monitor, essa screenshot o contera por completo
+/*// Caso o grafico de Gantt seja maior que a tela do monitor, essa screenshot o contera por completo
 void GerenciadorGUI::screenShotAvancada()
 {
 	ImVec2 dimensoesTotais = m_painelGantt.dimensoesTotais();
@@ -728,6 +729,352 @@ void GerenciadorGUI::screenShotAvancada()
 
 	UnloadImage(imagem);
 	UnloadRenderTexture(alvo);
+
+	m_solicitarExportacao = false;
+}*/
+
+/*//versao ruim
+void GerenciadorGUI::screenShotAvancada()
+{
+	if (m_historico.empty() || m_tarefas.empty())
+		return;
+
+	int totalTicks = static_cast<int>(m_historico.size());
+	int numTarefas = static_cast<int>(m_tarefas.size());
+
+	// Define quantos ticks cabem em cada linha/bloco horizontal
+	int ticksPorBloco = 115;
+	int qtdBlocos = (totalTicks + ticksPorBloco - 1) / ticksPorBloco; // Arredonda para cima
+
+	float larguraTick = 70.0f;
+	float alturaLinha = 40.0f;
+	float margemEsq = 70.0f;
+	float margemTopo = 70.0f;
+
+	int larguraBloco = static_cast<int>(margemEsq + (ticksPorBloco * larguraTick) + 50.0f);
+	int alturaBloco = static_cast<int>(margemTopo + (numTarefas * alturaLinha) + 40.0f);
+
+	int larguraFinal = std::min(larguraBloco, 8192);
+	int alturaFinal = std::min(alturaBloco * qtdBlocos, 8192); // Limite seguro de VRAM
+
+	RenderTexture2D alvo = LoadRenderTexture(larguraFinal, alturaFinal);
+	BeginTextureMode(alvo);
+	ClearBackground(GetColor(0x1E1E1EFF)); // Fundo escuro padrão
+
+	// Ordena as tarefas do mesmo modo que o painel faz (ID decrescente)
+	std::vector<TarefaGUI> t_Ord = m_tarefas;
+	std::sort(t_Ord.begin(), t_Ord.end(), [](const TarefaGUI& a, const TarefaGUI& b) {
+		return a.id > b.id;
+		});
+
+	size_t limiteTicks = (m_modoExecucao == 0) ? std::min(static_cast<size_t>(m_tickAtual + 1), m_historico.size()) : m_historico.size();
+
+	// Renderiza cada bloco empilhado verticalmente
+	for (int b = 0; b < qtdBlocos; b++)
+	{
+		int tickInicio = b * ticksPorBloco;
+		int tickFim = std::min(tickInicio + ticksPorBloco, totalTicks);
+
+		float offsetY = b * alturaBloco;
+		float offsetX = 0.0f;
+
+		// 1. Régua de ticks e linhas verticais
+		for (int t = tickInicio; t < tickFim; t++)
+		{
+			int tRelativo = t - tickInicio;
+			float x = offsetX + margemEsq + (tRelativo * larguraTick);
+
+			DrawText(TextFormat("%d", t), static_cast<int>(x + 5.0f), static_cast<int>(offsetY + 10.0f), 16, DARKGRAY);
+
+			float yTop = offsetY + margemTopo;
+			float yBottom = offsetY + margemTopo + (t_Ord.size() * alturaLinha);
+			DrawLineEx(Vector2{ x, yTop }, Vector2{ x, yBottom }, 1.0f, LIGHTGRAY);
+		}
+
+		// 2. Rótulos das tarefas no eixo Y e linhas horizontais
+		for (size_t i = 0; i < t_Ord.size(); i++)
+		{
+			float y = offsetY + margemTopo + (i * alturaLinha);
+			std::string label = "Tarefa " + std::to_string(t_Ord[i].id);
+			DrawText(label.c_str(), static_cast<int>(offsetX + 10.0f), static_cast<int>(y + 5.0f), 16, DARKGRAY);
+
+			float xMin = offsetX + margemEsq;
+			float xMax = offsetX + margemEsq + ((tickFim - tickInicio) * larguraTick);
+			DrawLineEx(Vector2{ xMin, y + alturaLinha }, Vector2{ xMax, y + alturaLinha }, 1.0f, LIGHTGRAY);
+		}
+
+		// 3. Blocos de execução correspondentes ao intervalo
+		for (int t = tickInicio; t < tickFim; t++)
+		{
+			if (static_cast<size_t>(t) >= limiteTicks) continue;
+			const SnapshotTick& snap = m_historico[t];
+			int tRelativo = t - tickInicio;
+
+			for (size_t i = 0; i < t_Ord.size(); i++)
+			{
+				float x = offsetX + margemEsq + (tRelativo * larguraTick);
+				float y = offsetY + margemTopo + (i * alturaLinha);
+
+				const SnapshotTarefaGUI* snapCerto = nullptr;
+				for (size_t j = 0; j < snap.tarefas.size(); j++)
+				{
+					if (snap.tarefas[j].idTarefa == t_Ord[i].id)
+					{
+						snapCerto = &snap.tarefas[j];
+						break;
+					}
+				}
+
+				if (!snapCerto) continue;
+
+				if (snapCerto->estado == EstadoTarefa::EXECUTANDO)
+				{
+					std::string corHex = t_Ord[i].cor;
+					unsigned int r = 100, g = 150, b = 250;
+
+					if (!corHex.empty())
+					{
+						const char* hexStr = corHex.c_str();
+						if (hexStr[0] == '#') hexStr++;
+
+						unsigned int hexVal = 0;
+						if (sscanf(hexStr, "%x", &hexVal) == 1)
+						{
+							r = (hexVal >> 16) & 0xFF;
+							g = (hexVal >> 8) & 0xFF;
+							b = hexVal & 0xFF;
+						}
+					}
+
+					Color cor = { static_cast<unsigned char>(r), static_cast<unsigned char>(g), static_cast<unsigned char>(b), 255 };
+					DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), cor);
+					DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), BLACK);
+				}
+				else if (snapCerto->estado == EstadoTarefa::PRONTA)
+				{
+					DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), GRAY);
+				}
+				else if (snapCerto->estado == EstadoTarefa::SUSPENSA)
+				{
+					DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), BLACK);
+					DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), GRAY);
+				}
+				else if (snapCerto->estado == EstadoTarefa::TERMINADA)
+				{
+					Color cinzaEscuro = Color{ 45, 45, 45, 255 };
+					DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), cinzaEscuro);
+					DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), DARKGRAY);
+				}
+			}
+		}
+	}
+
+	EndTextureMode();
+
+	Image imagem = LoadImageFromTexture(alvo.texture);
+	ImageFlipVertical(&imagem);
+
+	std::string prefixo = "../../../resultado_simulacao_gantt";
+	std::string extensao = ".png";
+	std::string caminhoFinal = prefixo + extensao;
+
+	int contador = 1;
+	while (FileExists(caminhoFinal.c_str()))
+	{
+		caminhoFinal = prefixo + "_" + std::to_string(contador) + extensao;
+		contador++;
+	}
+
+	ExportImage(imagem, caminhoFinal.c_str());
+
+	UnloadImage(imagem);
+	UnloadRenderTexture(alvo);
+
+	m_solicitarExportacao = false;
+}*/
+
+//versao svg
+void GerenciadorGUI::screenShotAvancada()
+{
+	if (m_historico.empty() || m_tarefas.empty())
+		return;
+
+	int totalTicks = static_cast<int>(m_historico.size());
+	int numTarefas = static_cast<int>(m_tarefas.size());
+	int totalCpus = (m_quantidadeCPUs != 0) ? m_quantidadeCPUs : 1;
+
+	// Dimensões do gráfico vetorial (ajustadas para dar espaço às CPUs no topo)
+	float larguraTick = 70.0f;
+	float alturaLinha = 40.0f;
+	float margemEsq = 90.0f;
+	float margemTopo = 50.0f + (totalCpus * 25.0f); // Espaço dinâmico para as linhas das CPUs
+
+	float larguraTotal = margemEsq + (totalTicks * larguraTick) + 50.0f;
+	float alturaTotal = margemTopo + (numTarefas * alturaLinha) + 50.0f;
+
+	std::string prefixo = "../../../resultado_simulacao_gantt";
+	std::string extensao = ".svg";
+	std::string caminhoFinal = prefixo + extensao;
+
+	int contador = 1;
+	while (FileExists(caminhoFinal.c_str()))
+	{
+		caminhoFinal = prefixo + "_" + std::to_string(contador) + extensao;
+		contador++;
+	}
+
+	std::ofstream svg(caminhoFinal);
+	if (!svg.is_open())
+	{
+		m_solicitarExportacao = false;
+		return;
+	}
+
+	svg << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
+	svg << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" << larguraTotal 
+		<< "\" height=\"" << alturaTotal << "\" viewBox=\"0 0 " << larguraTotal << " " << alturaTotal << "\">\n";
+
+	svg << "<rect width=\"100%\" height=\"100%\" fill=\"#1E1E1E\"/>\n";
+
+	std::vector<TarefaGUI> t_Ord = m_tarefas;
+	std::sort(t_Ord.begin(), t_Ord.end(), [](const TarefaGUI& a, const TarefaGUI& b) {
+		return a.id > b.id;
+		});
+
+	size_t limiteTicks = (m_modoExecucao == 0) ? std::min(static_cast<size_t>(m_tickAtual + 1), m_historico.size()) : m_historico.size();
+
+	// 1. Desenhar as Linhas e Rótulos das CPUs no Topo
+	for (int c = 0; c < totalCpus; c++)
+	{
+		int idCpu = c + 1;
+		float yCentro = margemTopo - 30.0f - (c * 22.0f);
+
+		// Rótulo da CPU
+		svg << "<text x=\"15\" y=\"" << (yCentro + 5.0f) 
+			<< "\" fill=\"#B4EEB4\" font-family=\"sans-serif\" font-size=\"13\" font-weight=\"bold\">CPU " << idCpu << "</text>\n";
+	}
+
+	// 2. Régua de Ticks e Linhas Verticais de Grade
+	for (int t = 0; t < totalTicks; t++)
+	{
+		float x = margemEsq + (t * larguraTick);
+		float yTop = margemTopo;
+		float yBottom = margemTopo + (t_Ord.size() * alturaLinha);
+
+		// Texto do Tick
+		svg << "<text x=\"" << (x + 5.0f) << "\" y=\"" << (margemTopo - 15.0f) 
+			<< "\" fill=\"#A0A0A0\" font-family=\"sans-serif\" font-size=\"14\">" << t << "</text>\n";
+
+		// Linha vertical de grade
+		svg << "<line x1=\"" << x << "\" y1=\"" << yTop << "\" x2=\"" << x << "\" y2=\"" << yBottom 
+			<< "\" stroke=\"#404040\" stroke-width=\"1\"/>\n";
+	}
+
+	// 3. Rótulos das Tarefas no Eixo Y e Linhas Horizontais
+	for (size_t i = 0; i < t_Ord.size(); i++)
+	{
+		float y = margemTopo + (i * alturaLinha);
+		float xMin = margemEsq;
+		float xMax = margemEsq + (totalTicks * larguraTick);
+
+		svg << "<text x=\"10\" y=\"" << (y + 25.0f) 
+			<< "\" fill=\"#FFFFFF\" font-family=\"sans-serif\" font-size=\"14\" font-weight=\"bold\">Tarefa " 
+			<< t_Ord[i].id << "</text>\n";
+
+		svg << "<line x1=\"" << xMin << "\" y1=\"" << (y + alturaLinha) << "\" x2=\"" << xMax << "\" y2=\"" << (y + alturaLinha) 
+			<< "\" stroke=\"#404040\" stroke-width=\"1\"/>\n";
+	}
+
+	// 4. Blocos de Execução do Gantt e Sinais de Estado das CPUs
+	for (int t = 0; t < static_cast<int>(limiteTicks); t++)
+	{
+		const SnapshotTick& snap = m_historico[t];
+
+		// Indicadores de estado da CPU neste tick específico
+		for (size_t c = 0; c < snap.cpus.size(); c++)
+		{
+			int idCpu = snap.cpus[c].idCpu;
+			bool executandoAgora = (snap.cpus[c].idTarefaExecutando != -1);
+			bool executandoAntes = false;
+
+			if (t > 0)
+			{
+				const SnapshotTick& snapAnterior = m_historico[t - 1];
+				for (const auto& cpuAnt : snapAnterior.cpus)
+				{
+					if (cpuAnt.idCpu == idCpu)
+					{
+						executandoAntes = (cpuAnt.idTarefaExecutando != -1);
+						break;
+					}
+				}
+			}
+
+			bool ligou = (!executandoAntes && executandoAgora);
+			bool desligou = (executandoAntes && !executandoAgora);
+
+			if (ligou || desligou)
+			{
+				float xCell = margemEsq + (t * larguraTick);
+				float xCentro = ligou ? (xCell + 14.0f) : (xCell + larguraTick - 14.0f);
+				int idxCpu = idCpu - 1;
+				float yCentro = margemTopo - 30.0f - (idxCpu * 22.0f);
+				std::string corCirculo = ligou ? "#00B400" : "#DC0000";
+
+				// Desenha o círculo indicador (Verde = Ligou, Vermelho = Desligou)
+				svg << "<circle cx=\"" << xCentro << "\" cy=\"" << yCentro << "\" r=\"9\" fill=\"" << corCirculo << "\" stroke=\"#000000\" stroke-width=\"1.5\"/>\n";
+				// Texto do ID da CPU dentro do círculo
+				svg << "<text x=\"" << (xCentro - 4.0f) << "\" y=\"" << (yCentro + 4.0f) 
+					<< "\" fill=\"#FFFFFF\" font-family=\"sans-serif\" font-size=\"11\" font-weight=\"bold\">" << idCpu << "</text>\n";
+			}
+		}
+
+		// Blocos das tarefas
+		for (size_t i = 0; i < t_Ord.size(); i++)
+		{
+			float x = margemEsq + (t * larguraTick);
+			float y = margemTopo + (i * alturaLinha);
+
+			const SnapshotTarefaGUI* snapCerto = nullptr;
+			for (size_t j = 0; j < snap.tarefas.size(); j++)
+			{
+				if (snap.tarefas[j].idTarefa == t_Ord[i].id)
+				{
+					snapCerto = &snap.tarefas[j];
+					break;
+				}
+			}
+
+			if (!snapCerto) continue;
+
+			if (snapCerto->estado == EstadoTarefa::EXECUTANDO)
+			{
+				std::string corHex = t_Ord[i].cor;
+				if (corHex.empty() || corHex[0] != '#') corHex = "#6495ED";
+
+				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha 
+					<< "\" fill=\"" << corHex << "\" stroke=\"#000000\" stroke-width=\"1\"/>\n";
+			}
+			else if (snapCerto->estado == EstadoTarefa::PRONTA)
+			{
+				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha 
+					<< "\" fill=\"none\" stroke=\"#808080\" stroke-width=\"1\"/>\n";
+			}
+			else if (snapCerto->estado == EstadoTarefa::SUSPENSA)
+			{
+				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha 
+					<< "\" fill=\"#000000\" stroke=\"#808080\" stroke-width=\"1\"/>\n";
+			}
+			else if (snapCerto->estado == EstadoTarefa::TERMINADA)
+			{
+				svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << larguraTick << "\" height=\"" << alturaLinha 
+					<< "\" fill=\"#2D2D2D\" stroke=\"#464646\" stroke-width=\"1\"/>\n";
+			}
+		}
+	}
+
+	svg << "</svg>\n";
+	svg.close();
 
 	m_solicitarExportacao = false;
 }
