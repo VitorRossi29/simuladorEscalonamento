@@ -1,7 +1,7 @@
 #include "Tarefa.hpp"
 #include <random>
 
-static int idPronto=0;
+static int idPronto=0; //usado ao gerar tarefas aleatorias
 
 Tarefa::Tarefa()
 {
@@ -86,6 +86,7 @@ Tarefa::~Tarefa()
 
 }
 
+//reseta os atributos dinamicos
 void Tarefa::resetaTarefa()
 {
 	snapshot.tempoRestante=duracao;
@@ -93,29 +94,28 @@ void Tarefa::resetaTarefa()
 	snapshot.proximaLiberacao=ingresso;
 	snapshot.deadlinesPerdidas=0;
 	snapshot.tempoEspera=0;
-
-	//Mudanca feita pelo vitor que pode estar errada
-	snapshot.quantidadeExecucoes = 0;
+	snapshot.quantidadeExecucoes=0;
 
 	snapshot.estado=EstadoTarefa::NOVA;
 }
 
+//usado quando termina uma execucao
 void Tarefa::preparaProximaExecucao(int tickAtual)
 {
-	// Reseta a duracao para proxima execucao
+	//reseta a duracao para proxima execucao
 	snapshot.tempoRestante=duracao;
 
-	// Impede acumulo de liberacoes do passado se a tarefa esteve suspensa
-	while (getProximaLiberacao() <= tickAtual)
+	//impede acumulo de liberacoes do passado se a tarefa esteve suspensa
+	while (getProximaLiberacao()<=tickAtual)
 	{
-		snapshot.proximaLiberacao += periodo;
+		snapshot.proximaLiberacao+=periodo;
 	}
 
-	// Atualizacao do proximo deadline
-	//snapshot.proximoDeadline += prazo+getQuantidadeExecucoes();
+	//atualiza o proximo deadline
 	snapshot.proximoDeadline=snapshot.proximaLiberacao+prazo;
 }
 
+//inicializa o numero aleatorio usado pro desempate de cada tarefa
 void Tarefa::geraNumeroAleatorio()
 {
 	std::random_device rd;
@@ -124,39 +124,21 @@ void Tarefa::geraNumeroAleatorio()
 	numAleatorio=dis(gen);
 }
 
+//utiliza mesma logica da construtora aleatoria porem evita cores mais escuras sem o 0,1 e 2
 void Tarefa::resetaCor()
 {
-	/*
-	std::random_device rd; //gera uma semente utilizando o proprio hardware do sistema
-	std::mt19937 gen(rd()); //inicializa o motor com a semente criada
+	std::random_device rd;
+	std::mt19937 gen(rd());
 
-	const char caracteres[]="0123456789ABCDEF";
+	const char caracteres[]="3456789ABCDEF";
+	std::uniform_int_distribution<int> disCaracter(0, 12);
 
-	std::string corAleatoria="";
-	std::uniform_int_distribution<int> disCaracter(0, 15);
-
-	for (int i=0;i<6;i++) 
+	std::string corAleatoria="#";
+	for (int i=0;i<6;i++)
 	{
 		corAleatoria+=caracteres[disCaracter(gen)];
 	}
 
 	cor=corAleatoria;
-	*/
-
-	// Usar 'static' faz com que o gerador seja inicializado uma única vez na memória
-	static std::random_device rd;
-	static std::mt19937 gen(rd());
-
-	// Evita tons extremamente escuros para nao sumir no fundo do Gantt (dígitos de 3 a F)
-	const char caracteres[] = "3456789ABCDEF";
-	std::uniform_int_distribution<int> disCaracter(0, 12);
-
-	std::string corAleatoria = "#"; // Inclui o prefixo # obrigatório
-	for (int i = 0; i < 6; i++)
-	{
-		corAleatoria += caracteres[disCaracter(gen)];
-	}
-
-	cor = corAleatoria;
 }
 

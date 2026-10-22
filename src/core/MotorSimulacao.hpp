@@ -7,17 +7,15 @@
 struct MotorSimulacao
 {
 private:
-	long int tickAtual;
 
-	//Minimo Multiplo Comum (MMC) dos periodos de todas as tarefas.
-	int hiperperiodo;
+	long int tickAtual; //tick de tempo
 	TipoAlgoritmo algoritmoSelecionado;
-	std::vector<Tarefa> tarefas;
-	std::vector<Historico> historicoTimeline;
+	std::vector<Tarefa> tarefas; //todas as tarefas
+	std::vector<Historico> historicoTimeline; //historico completo da execucao
 	std::vector<CPU> todasCPUs;
 	int quantCPUs;
 	int quantum;
-	std::vector<EventoGantt> eventosDesempatePendentes;
+	std::vector<EventoGantt> eventosDesempatePendentes; //usado para registrar desempates
 
 	enum class EstadoSimulacao
 	{
@@ -31,7 +29,7 @@ public:
 	MotorSimulacao()
 	{
 		quantCPUs=1;
-		quantum = 1;
+		quantum=1;
 		resetSimulacao();
 	}
 	void addTarefa(const Tarefa& tarefa);
@@ -42,7 +40,7 @@ public:
 	bool comparaEDF(const Tarefa* a, const Tarefa* b); //ordena as tarefas mais prioritarias por menor deadline e trata desempates
 
 	Historico passoSimulacao(std::vector<Tarefa*> tarefasMaiorPrioridade);
-	void preparaSimulacaoRM();
+	void preparaSimulacaoRM(); //inicializa as prioridades estaticas
 
 	double calculaUtilizacaoCPU();
 	bool verificaEscalabilidade();
@@ -51,20 +49,18 @@ public:
 	void executaPassoAPasso(int instrucao);
 	void resetaAPartirDe(int tick);
 
+	bool desempate(const Tarefa* a, const Tarefa* b);
+
 	//estatico para poder ser usado como funcao de comparacao para o sort
 	static bool comparaPeriodo(const Tarefa& t1, const Tarefa& t2);
 
+	//gets e sets
 	const std::vector<Historico>& getHistorico() const { return historicoTimeline; }
 	const std::vector<Tarefa>& getTarefas() const { return tarefas; }
 	long int getTickAtual() const { return tickAtual; }
 	TipoAlgoritmo getAlgoritmo() const { return algoritmoSelecionado; }
-
 	void setAlgoritmo(TipoAlgoritmo algo) { algoritmoSelecionado=algo; }
 	void limparTarefas() { tarefas.clear(); resetSimulacao(); }
-	bool desempate(const Tarefa* a, const Tarefa* b);
-
-	// Altera o numero de CPUs
-	void setQuantidadeCPUs(int cpus) { quantCPUs = cpus; }
-	// Altera o numero de quantums
-	void setQuantum(int quanter) { quantum = quanter; }
+	void setQuantidadeCPUs(int cpus) { quantCPUs=cpus; }
+	void setQuantum(int quanter) { quantum=quanter; }
 };
