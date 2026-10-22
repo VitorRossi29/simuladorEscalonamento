@@ -43,7 +43,7 @@ bool PainelConfiguracao::renderizar()
 
 	ImGui::Text("Algoritmo de Escalonamento:");
 
-	// Identificador local do estado do Radio Button
+	// Se algoritmo = EDF selecaoAlgoritmo = 1, senao se algoritmo = Outro, selecaoAlgoritmo = 2, senao igual 0 (RM)
 	int selecaoAlgoritmo = (m_algoritmo == "EDF") ? 1 : (m_algoritmo == "Outro" ? 2 : 0);
 
 	if (ImGui::RadioButton("Rate Monotonic (RM)", &selecaoAlgoritmo, 0))
@@ -66,7 +66,7 @@ bool PainelConfiguracao::renderizar()
 
 	ImGui::Separator();
 
-	// Controles diretamente vinculados às variaveis do GerenciadorGUI
+	// Controles diretamente vinculados as variaveis do gerenciador
 	if (m_qtdeCpus != nullptr)
 	{
 		if ( ImGui::SliderInt("Numero de CPUs", m_qtdeCpus, 1, 16, "%d CPUs") )
@@ -88,6 +88,7 @@ bool PainelConfiguracao::renderizar()
 
 	if (*m_modoFonte == ModoFonteDados::ENGINE_REAL)
 	{
+		//Apertar o botao faz aparecer e sumir a caixa para escrever o caminho
 		if (ImGui::Button("Carregar arquivo de informacoes"))
 		{
 			caminhoArquivoCaixa = !caminhoArquivoCaixa;
@@ -125,6 +126,7 @@ void PainelConfiguracao::renderizarMetricas(const std::vector<TarefaGUI>& tarefa
 		return;
 	}
 
+	// Se de alguma forma for possivel colocar 0 cpus ele nao faz a divisao por zero
 	ImGui::Text("Nivel de uso das CPUs");
 	if (m_qtdeCpus != 0)
 		progresso = (float)utilizacaoCPU / (float) *m_qtdeCpus;
@@ -133,6 +135,7 @@ void PainelConfiguracao::renderizarMetricas(const std::vector<TarefaGUI>& tarefa
 
 	ImGui::ProgressBar(progresso, ImVec2(300, 30));
 
+	// Obviamente se for escalonavel fala que eh escalonavel e se nao for fala que nao eh
 	if (escalonavel)
 		ImGui::TextColored(ImColor(0, 255, 0, 255), "Sistema escalonavel");
 	else

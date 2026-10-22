@@ -5,14 +5,16 @@
 
 PainelControles::PainelControles(int* tickAtual, int* totalTicks, 
 	bool* emExecucaoAuto, float* delayPasso, 
-	int* modoExecucao, int* algoritmoSelecionado, bool* exportacao) :
+	int* modoExecucao, int* algoritmoSelecionado, bool* exportacao,
+	bool* solicitacaoDeReset) :
 	m_tickAtualRef(tickAtual),
 	m_totalTicksRef(totalTicks),
 	m_emExecucaoAutoRef(emExecucaoAuto),
 	m_delayPasso(delayPasso),
 	m_modoExecucao(modoExecucao),
 	m_algoritmoSelecionado(algoritmoSelecionado),
-	solicitarExportacaoRef (exportacao)
+	solicitarExportacaoRef (exportacao),
+	solicitarReset(solicitacaoDeReset)
 {
 }
 
@@ -45,6 +47,7 @@ void PainelControles::renderizar()
 	else
 		ImGui::TextColored(ImColor(0, 127, 255, 255), "Tick Atual: %d/ %d", (*m_tickAtualRef) + 1, *m_totalTicksRef);
 
+	// Dependendo do modo e do estado do escalonamento apresenta uma imagem diferente
 	if (m_emExecucaoAutoRef != nullptr && *m_emExecucaoAutoRef)
 		ImGui::TextColored(ImColor(0, 255, 0, 255), "Escalonador em Execucao");
 	else if(m_emExecucaoAutoRef != nullptr && ((*m_tickAtualRef) + 1 == *m_totalTicksRef) || *m_modoExecucao == 1)
@@ -54,8 +57,10 @@ void PainelControles::renderizar()
 
 	ImGui::Separator();
 
-	ImGui::BeginDisabled(m_emExecucaoAutoRef != nullptr && *m_modoExecucao == 1);	//se estiver no modo completo
+	// Se estiver no modo completo nao permite as opcoes que nao fazem sentido
+	ImGui::BeginDisabled(m_emExecucaoAutoRef != nullptr && *m_modoExecucao == 1);	
 
+	// Ativa e desativa reproducao automatica
 	if (ImGui::Button("Executar"))
 	{
 		*m_emExecucaoAutoRef = true;
@@ -67,6 +72,7 @@ void PainelControles::renderizar()
 	}
 	ImGui::SameLine();
 
+	// Se estiver no modo de reproducao automatica nao permite as opcoes que nao fazem sentido
 	ImGui::BeginDisabled(m_emExecucaoAutoRef != nullptr && *m_emExecucaoAutoRef);
 
 	if (ImGui::Button ("Avancar (+1)"))
@@ -93,8 +99,10 @@ void PainelControles::renderizar()
 	{	
 		*m_tickAtualRef = 0;
 		*m_emExecucaoAutoRef = false;
+		*solicitarReset = true;
 	}	
 
+	// Controle da velocidade da simulacao
 	ImGui::SliderFloat("Velocidade de simulacao", m_delayPasso, 0.1f, 3.0f, "%.2f segundos/tick");
 
 	ImGui::EndDisabled();
@@ -103,15 +111,9 @@ void PainelControles::renderizar()
 	{
 		if (solicitarExportacaoRef != nullptr)
 		{
-			*solicitarExportacaoRef = true; // Notifica o GerenciadorGUI
+			*solicitarExportacaoRef = true; // Notifica o GerenciadorGUI que quer exportar imagem
 		}
 	}
 
 	ImGui::End();
-}
-
-//Tira foto simples da tela
-void PainelControles::screenShotSimples()
-{
-	TakeScreenshot("../../../escalonamento_gantt.png");
 }

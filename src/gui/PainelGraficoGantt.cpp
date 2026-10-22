@@ -92,7 +92,7 @@ void PainelGraficoGantt::desenharEixoYELinhasBase(ImDrawList* listaDesenhos, ImV
 {
     int totalTicks = static_cast<int>(m_historicoRef->size());
 
-    // ALTERAcaO/CORREcaO: Desenha os rohtulos das linhas dedicadas das CPUs no eixo Y (acima da lista de tarefas)
+    // Desenha os rotulos das linhas dedicadas das CPUs no eixo Y (acima da lista de tarefas)
     if (m_qtdeCpusRef != nullptr)
     {
         int totalCpus = *m_qtdeCpusRef;
@@ -135,7 +135,7 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
     size_t limite;
 
     // Define até qual tick o grafico deve ser revelado na interface no modo passo a passo
-    // E defube o limite como o ultimo tick no modo instantaneo
+    // E define o limite como o ultimo tick no modo instantaneo
     if (!(*m_modoExecucao))
     {
         int tickLimite = *m_tickAtualRef;
@@ -272,7 +272,7 @@ void PainelGraficoGantt::desenharBlocosExecucao(ImDrawList* listaDesenhos, ImVec
                 listaDesenhos->AddRect(posicaoMin, posicaoMax, IM_COL32(100, 100, 100, 255));
             }
 
-            //TESTE
+            // Mostra as informacoes da tarefa naquele determinado tick
             if (ImGui::IsMouseHoveringRect(posicaoMin, posicaoMax))
             {
                 ImGui::BeginTooltip();
@@ -688,7 +688,6 @@ void PainelGraficoGantt::desenharExportacaoRaylib(int larguraCanvas, int alturaC
                 float xCell = origemX + m_margemEsquerda + (t * m_larguraTick);
                 float raio = 9.0f;
 
-                // ALTERAcaO/CORREcaO (Deslocamento nas Bordas - Raylib):
                 float xCentro = ligou ? (xCell + 14.0f) : (xCell + m_larguraTick - 14.0f);
 
                 int idxCpu = idCpu - 1;
@@ -775,7 +774,7 @@ void PainelGraficoGantt::renderizar()
 
     if (ImGui::Begin("Grafico de Gantt Multi-CPU", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus))
     {
-        //Coisas importantes
+        // Coisas importantes
         origemQuadro = ImGui::GetCursorScreenPos();
         listaDesenhos = ImGui::GetWindowDrawList();
         ClearBackground(DARKGRAY);
@@ -786,7 +785,7 @@ void PainelGraficoGantt::renderizar()
             return;
         }
 
-        // ALTERAcaO/CORREcaO: Reajusta dinamicamente a margem superior com base no número de CPUs ativas
+        // Reajusta dinamicamente a margem superior com base no número de CPUs ativas
         int qtdeCpus = (m_qtdeCpusRef != nullptr) ? *m_qtdeCpusRef : 1;
         m_margemTopo = std::max(70.0f, 30.0f + (qtdeCpus * 22.0f));
 

@@ -3,12 +3,11 @@
 #include "MockData.hpp"
 #include "imgui.h"
 #include "raylib.h"
-
 #include "../core/MotorSimulacao.hpp"
-//#include "../reader/Leitor.hpp"
 
 #include <algorithm>
 #include <fstream>
+#include <cstring>
 
 #ifndef ImGuiCol_TabActive
 #define ImGuiCol_TabActive ImGuiCol_HeaderActive
@@ -27,7 +26,7 @@ std::vector<GerenciadorGUI::ItemLog> GerenciadorGUI::s_logs;
 
 GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 	m_motor(motor),
-	fonteDados(ModoFonteDados::MOCK),
+	fonteDados(ModoFonteDados::ENGINE_REAL),
 
 	m_tickAtual(0),
 	m_totalTicks(50),
@@ -51,6 +50,7 @@ GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 
 	querUtilizacao(false),
 	utilizacaoCPU(0.0f),
+	resetSolicitado(false),
 
 	m_exibirConfig(true),
 	m_exibirControles(true),
@@ -61,12 +61,11 @@ GerenciadorGUI::GerenciadorGUI(MotorSimulacao* motor) :
 	m_solicitarExportacao(false),
 
 	m_painelConfig(&m_quantidadeCPUs, &m_quantum, m_algoritmo, &fonteDados, caminhoArquivo),
-	m_painelControles(&m_tickAtual, &m_totalTicks, &m_emExecucaoAuto, &m_delayPasso, &m_modoExecucao, &m_algoritmoSelecionado, &m_solicitarExportacao),
+	m_painelControles(&m_tickAtual, &m_totalTicks, &m_emExecucaoAuto, &m_delayPasso, &m_modoExecucao, &m_algoritmoSelecionado, &m_solicitarExportacao, &resetSolicitado),
 	m_painelTabela(&m_tarefas, &m_historico, &m_tickAtual),
 	m_painelGantt(&m_tarefas, &m_historico, &m_tickAtual, &m_quantidadeCPUs, &m_modoExecucao)
 
 {
-	//Carregar dados dos Mocks e etc
 }
 
 void GerenciadorGUI::customizarEstilo()
@@ -159,7 +158,7 @@ void GerenciadorGUI::customizarEstilo()
 	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.8f, 0.8f, 0.8f, 0.35f);
 }
 
-//Esta funcao roda uma �nica vez no in�cio da aplicacao ou quando a simulacao precisa ser totalmente restaurada
+//Esta funcao roda uma Unica vez no inIcio da aplicacao ou quando a simulacao precisa ser totalmente restaurada
 void GerenciadorGUI::inicializar()
 {
 	m_tickAtual = 0;
@@ -176,9 +175,12 @@ void GerenciadorGUI::inicializar()
 
 	m_solicitarExportacao = false;
 
+
 	m_tarefas = GeradorMock::criarTarefasIniciais();
 	m_historico = GeradorMock::gerarHistoricoInicial(m_tarefas, m_totalTicks, m_quantidadeCPUs, m_quantum);
 
+	recalcularSimulacao();
+	
 	customizarEstilo();
 }
 
@@ -193,20 +195,13 @@ void GerenciadorGUI::atualizar(float deltaTime)
 		m_tempoAcumulado += deltaTime;	//Acumulo de tempo
 		if (m_tempoAcumulado >= m_delayPasso)	//Controle Passo
 		{
-			m_tempoAcumulado -= m_delayPasso;
+			m_tempoAcumulado -= m_delayPasso;	//Desacumula o tempo
 
-			if (m_tickAtual < static_cast<int>(m_historico.size()) - 1)
+			if (m_tickAtual < static_cast<int>(m_historico.size()) - 1)		//Verifica se eh o fim da simulacao
 			{
 				m_tickAtual++;
 			}
-			//else if (fonteDados == ModoFonteDados::ENGINE_REAL && m_modoExecucao == 0)
-			//{
-			//	// Se chegou ao fim do historico no passo a passo, executa +1 tick no motor
-			//	m_motor->executaPassoAPasso(1);
-			//	sincronizarComEngine();
-			//	m_tickAtual++;
-			//}
-			else
+			else      // Eh o fim da ismulacao
 			{
 				m_emExecucaoAuto = false;
 				m_tempoAcumulado = 0.0f;
@@ -236,7 +231,6 @@ void GerenciadorGUI::renderizar()
 				ImGui::MenuItem("Tabela de Tarefas", NULL, &m_exibirTabela);
 				ImGui::MenuItem("Painel de Configuracao", NULL, &m_exibirConfig);
 				ImGui::MenuItem("Painel de Controle", NULL, &m_exibirControles);
-				//ImGui::MenuItem("Grafico de Gantt", NULL, &m_exibirGantt);
 				ImGui::MenuItem("Console de Logs", NULL, &m_exibirLogs);
 				ImGui::EndMenu();
 			}
@@ -246,7 +240,8 @@ void GerenciadorGUI::renderizar()
 
 		bool configAlteradaNoPainel = false;
 
-		// Desenho Sequencial dos Paineis
+		// EXIBICAO DOS PAINEIS ----------------------------------------
+
 		if (m_exibirConfig)
 			configAlteradaNoPainel = m_painelConfig.renderizar();
 
@@ -280,6 +275,7 @@ void GerenciadorGUI::renderizar()
 		if (m_exibirLogs)
 			desenharJanelaLogs();
 
+		// ------------------------------------------------------------------------
 
 		// Checa se houve mudanca estrutural no arquivo
 		bool mudancaNoArquivo = (configAlteradaNoPainel && (caminhoArquivo != caminhoArquivoAnterior));
@@ -300,9 +296,9 @@ void GerenciadorGUI::renderizar()
 			// Carrega o arquivo, reseta o motor e zera m_tickAtual
 			carregarArquivoEncontrado();
 		}
-		else if (mudancaDeParametrosGlobais)	// Mudanca estrutural (ex: CPUs) exige resetar para o tick 0
+		else if (mudancaDeParametrosGlobais)	// Mudanca estrutural (ex: numero de CPUs) exige resetar para o tick 0
 		{
-			// Notifica o usu�rio via Log AVISO sobre qual alteracao causou o reset da simulacao
+			// Notifica o usuario via Log AVISO sobre qual alteracao causou o reset da simulacao
 			if (m_quantidadeCPUs != m_quantidadeCPUsAnterior)
 			{
 				registrarLog(TipoLog::AVISO, "Quantidade de CPUs alterada de " + std::to_string(m_quantidadeCPUsAnterior) + " para " + std::to_string(m_quantidadeCPUs) + ". A simulacao foi resetada para o tick 0.");
@@ -317,11 +313,15 @@ void GerenciadorGUI::renderizar()
 			}
 			if (fonteDados != m_fonteDadosAnterior)
 			{
+				// if fonte de dados = mock "dados simulados mock" else motor real engine
 				std::string nomeFonte = (fonteDados == ModoFonteDados::MOCK) ? "Dados Simulados (Mock)" : "Motor Real (Engine)";
 				registrarLog(TipoLog::AVISO, "Fonte de dados alterada para " + nomeFonte + ". A simulacao foi resetada para o tick 0.");
 			}
 
+			// Se houve mudanca de parametros globais deve reiniciar a simulacao
 			recalcularSimulacao();
+
+
 			// Zera os ticks
 			m_tickAtual = 0;
 
@@ -332,40 +332,53 @@ void GerenciadorGUI::renderizar()
 			m_modoExecucaoAnterior = m_modoExecucao;
 			m_fonteDadosAnterior = fonteDados;
 		}
-		else if (mudancaAlgoritmo) // NOVO: Alteracao din�mica de algoritmo no meio do processo
+		else if (mudancaAlgoritmo) // Alteracao dinamica de algoritmo no meio do processo
 		{
-			m_algoritmoAnteriorString = m_algoritmo; // Atualiza o rastreador da string
+			m_algoritmoAnteriorString = m_algoritmo; 
 
 			if (m_tickAtual == 0)
 			{
-				// Se a simulacao estiver no in�cio, recalcula do zero
+				// Se a simulacao estiver no inicio, recalcula do zero
 				recalcularSimulacao();
 			}
 			else
 			{
-				// Se estiver no meio da simulacao (tick > 0), preserva o hist�rico passado 
+				// Se estiver no meio da simulacao (tick > 0), preserva o historico passado 
 				// e reescalona o futuro a partir do tick atual com o novo algoritmo escolhido
 				GerenciadorGUI::registrarLog(TipoLog::INFO, "Algoritmo alterado para " + m_algoritmo + " no tick " + std::to_string(m_tickAtual) + ". Reescalonando o futuro.");
 				reescalonarAPartirDoTickAtual();
 			}
 		}
 
+		// Exportacao de imagem SVG
 		if (m_solicitarExportacao)
 		{
 			screenShotAvancada();
 		}
 
+		// Funcionamento do botao reset
+		if (resetSolicitado)
+		{
+			recalcularSimulacao();
+			resetSolicitado = false;
+		}
+
+		// Preparacao para o calculo e insercao das metricas do escalonamento
 		if (m_exibirConfig)
 		{
 			if (fonteDados == ModoFonteDados::ENGINE_REAL && m_motor != nullptr)
 			{
+				// Utilizacao da cpu
 				utilizacao = m_motor->calculaUtilizacaoCPU();
+
+				// Teste de escalonabilidade
 				escalonavel = m_motor->verificaEscalabilidade();
 
 				const auto& historico = m_motor->getHistorico();
 				int totalTicks = static_cast<int>(historico.size());
 				int totalSlotsCPU = 0;
 
+				// Se tem zero ticks nao faz
 				if (totalTicks > 0)
 				{
 					for (size_t i = 0; i < historico.size(); i++)
@@ -389,17 +402,18 @@ void GerenciadorGUI::renderizar()
 					{
 						tempoOciosoPercentual = (((float)(ticksOciosos)) / ((float)(totalSlotsCPU))) * 100.0f;
 					}
+
+					// Se tudo deu certo pode renderizar
+					m_painelConfig.renderizarMetricas(m_tarefas, utilizacao, escalonavel, totalDeadlines, tempoOciosoPercentual);
 				}
 			}
-			if (fonteDados == ModoFonteDados::ENGINE_REAL)
-				m_painelConfig.renderizarMetricas(m_tarefas, utilizacao, escalonavel, totalDeadlines, tempoOciosoPercentual);
 		}
 	}
 }
 
 void GerenciadorGUI::carregarArquivoEncontrado()
 {
-	// Bloco try/catch para capturar falhas de abertura ou sintaxe do arquivo sem travar o sistema
+	// Try catch pra impedir que um erro de leitura estrague tudo
 	try
 	{
 		// Instanciacao local do leitor
@@ -409,7 +423,7 @@ void GerenciadorGUI::carregarArquivoEncontrado()
 		if (caminhoArquivoAnterior != "")
 			registrarLog(TipoLog::AVISO, "Novo arquivo carregado ('" + caminhoArquivo + "'). A simulacao foi resetada para o tick 0.");
 
-		// GARANTIA: Forca a fonte de dados para o Motor Real (ENGINE_REAL) para que a GUI exiba os dados lidos
+		// Garante que o modo de fonte de dados eh a ENGINE REAL mesmo
 		fonteDados = ModoFonteDados::ENGINE_REAL;
 		m_fonteDadosAnterior = ModoFonteDados::ENGINE_REAL;
 
@@ -422,6 +436,7 @@ void GerenciadorGUI::carregarArquivoEncontrado()
 
 		TipoAlgoritmo tipodesse = config.algoritmo;
 
+		// Selecao do algoritmo
 		if (tipodesse == TipoAlgoritmo::RATE_MONOTONIC)
 		{
 			m_algoritmo = "RM";
@@ -439,16 +454,14 @@ void GerenciadorGUI::carregarArquivoEncontrado()
 		}
 		m_algoritmoAnterior = m_algoritmoSelecionado;
 
-		// Limpa os vetores do GUI e do motor
+		// Limpa os vetores de tarefas da interface grafica e do motor interno 
 		m_tarefas.clear();
 		m_motor->limparTarefas();
 
-		const std::vector<std::string> paletaCores = {
-			"#FF5733", "#33FF57", "#3357FF", "#F39C12",
-			"#8E44AD", "#1ABC9C", "#D35400", "#2C3E50"
-		};
+		// Paleta de cores de precaucao
+		const std::vector<std::string> paletaCores = { "#FF5733", "#33FF57", "#3357FF", "#F39C12", "#8E44AD", "#1ABC9C", "#D35400", "#2C3E50" };
 
-		// Converte as tarefas lidas do arquivo e POPULA O VETOR m_tarefas (GUI)
+		// Converte as tarefas lidas do arquivo para tarefas de GUI e coloca elas no vetor de tarefas
 		for (size_t i = 0; i < config.tarefas.size(); i++)
 		{
 			Tarefa& t = config.tarefas[i];
@@ -462,25 +475,27 @@ void GerenciadorGUI::carregarArquivoEncontrado()
 			tGUI.prioridade = t.getPrioridade();
 
 			std::string corValida = t.getCor();
+
+			// Se a cor do arquivo for invalida coloca uma qualquer da paleta
 			if (corValida.empty() || corValida == "\0" || corValida == "null")
 			{
+				// Cor aleatoria
 				corValida = paletaCores[i % paletaCores.size()];
 			}
 			strncpy(tGUI.cor, corValida.c_str(), sizeof(tGUI.cor) - 1);
 			tGUI.cor[sizeof(tGUI.cor) - 1] = '\0';
 
-			// As tarefas devem ser inseridas em m_tarefas (vetor da GUI),
-			// e NaO diretamente no m_motor, pois a chamada atualizarTarefasNaEngine() limpa o m_motor!
+			// As tarefas devem sao inseridas no vetor de tarefas
 			m_tarefas.push_back(tGUI);
 		}
 
-		// Prepara os par�metros no motor
+		// Prepara os parametros no motor
 		m_tickAtual = 0;
 		m_motor->setAlgoritmo(config.algoritmo);
 		m_motor->setQuantidadeCPUs(m_quantidadeCPUs);
 		m_motor->setQuantum(m_quantum);
 
-		// Chama atualizarTarefasNaEngine para "corrigir" m_tarefas com o validarTarefa() 
+		// Chama atualizarTarefasNaEngine para o validarTarefas() garantir que as tarefas estao boas
 		// e repassar os dados de m_tarefas para o motor antes de simular
 		atualizarTarefasNaEngine();
 
@@ -515,16 +530,6 @@ void GerenciadorGUI::recalcularSimulacao()
 
 		m_motor->resetSimulacao();
 
-		//if (m_modoExecucao == 1) // Modo Instant�neo Completo
-		//{
-		//	m_motor->executaTempoReal();
-		//}
-		//else // Modo Passo a Passo
-		//{
-		//	// Processa apenas o primeiro passo para inicializar o tick 0
-		//	m_motor->executaPassoAPasso(1);
-		//}
-
 		// Executa a simulacao completa para gerar todo o histohrico do hiperper�odo/t�rmino
 		m_motor->executaTempoReal();
 
@@ -541,11 +546,14 @@ void GerenciadorGUI::recalcularSimulacao()
 
 void GerenciadorGUI::sincronizarComEngine()
 {
+	// Limpa os vetores
 	m_historico.clear();
 	m_tarefas.clear();
 
-	if (m_motor == nullptr) return;
+	if (m_motor == nullptr) 
+		return;
 
+	// Para guardar o maior ID
 	short int maiorID = 0;
 
 	// Conversao das tarefas da Engine para TarefaGUI
@@ -561,13 +569,14 @@ void GerenciadorGUI::sincronizarComEngine()
 		{
 			if (jaAdicionada.id == idAtual)
 			{
-				//BOTAR MENSAGEM DE AVISO AQ
+				registrarLog(TipoLog::ERRO, "Funcao sincronizarComEngine - Tarefa " + std::to_string(jaAdicionada.id) + ": ID repetido. Ajustado para " + std::to_string(maiorID + 1 ));
 				idAtual = maiorID + 1;
 				break;
 			}
 		}
 
 		tGUI.id = idAtual;
+		// Se o id da tarefa eh o maior ID troca o maiorID pra ser o dela
 		if (tGUI.id > maiorID)
 		{
 			maiorID = tGUI.id;
@@ -591,7 +600,6 @@ void GerenciadorGUI::sincronizarComEngine()
 
 			if (corRepetida)
 			{
-				//BOTAR MENSAGEM DE AVISO AQ
 				tReal.resetaCor();
 				corAtual = tReal.getCor();
 			}
@@ -605,7 +613,7 @@ void GerenciadorGUI::sincronizarComEngine()
 		strncpy(tGUI.cor, tReal.getCor().c_str(), sizeof(tGUI.cor) - 1);
 		tGUI.cor[sizeof(tGUI.cor) - 1] = '\0';
 
-		//Falta pegar os eventos mas isso � pra parte 2
+		//Falta pegar os eventos mas isso eh pra parte 2 !!!
 
 		tGUI.prioridade = tReal.getPrioridade();
 
@@ -622,8 +630,11 @@ void GerenciadorGUI::sincronizarComEngine()
 
 	for (size_t i = 0; i < historicoEngine.size(); i++)
 	{
+		// Pega um passo do historico todo pra analisar, analisa um passo de cada vez
 		const Historico& historicoPasso = historicoEngine[i];
 		SnapshotTick snapGUI;
+
+		// SINCRONIZA A INTERFACE GRAFICA COM A ENGINE OH MY GOD
 		snapGUI.tick = historicoPasso.tempo;
 
 		// Verifica cada cpu que estava sendo usada no instante em analise
@@ -666,31 +677,35 @@ void GerenciadorGUI::sincronizarComEngine()
 				}
 			}
 
-			if (executandoSim)
+			if (executandoSim)	// Se esta na lista de tarefas executando.... obviamente esta executando
 			{
 				t.estado = EstadoTarefa::EXECUTANDO;
 			}
 			else if (tMotor.getEstado() == EstadoTarefa::TERMINADA || tMotor.getQuantidadeExecucoes() >= 10)
+				// Por garantia colocamos duas condicoes pra encontra a tarefa terminada
 			{
 				t.estado = EstadoTarefa::TERMINADA;
 			}
 			else if (tMotor.getProximaLiberacao() <= historicoPasso.tempo && tMotor.getTempoRestante() > 0 && tMotor.getEstado() != EstadoTarefa::SUSPENSA)
 			{
-				// ALTERAcaO/CORREcaO: A tarefa soh entra na Fila de Prontas (PRONTA) quando seu per�odo chegou
-				// (proximaLiberacao <= tempo) e ela possui duracao restante a ser executada na inst�ncia.
+				// A tarefa so entra na Fila de Prontas quando seu periodo chegou (Mensagem do discord do professor esclareceu)
+				// (proximaLiberacao <= tempo) e ela possui duracao restante a ser executada na instancia.
 				t.estado = EstadoTarefa::PRONTA;
 			}
 			else
 			{
-				// ALTERAcaO/CORREcaO: Se a tarefa encerrou sua execucao da inst�ncia e aguarda a chegada do prohximo per�odo
-				// (ou se foi suspensa manualmente pelo usuario), seu estado operacional � SUSPENSA.
+				// Se a tarefa encerrou sua execucao da instancia e aguarda a chegada do proximo periodo
+				// (ou se foi suspensa manualmente pelo usuario), dai ela fica suspensa
 				t.estado = EstadoTarefa::SUSPENSA;
 			}
 
 			snapGUI.tarefas.push_back(t);
+
+			// Atualiza o total de ticks
 			m_totalTicks = static_cast<int>(m_historico.size());
 		}
 
+		// Pega os eventos do motor para poder ilustrar
 		snapGUI.eventos = historicoPasso.eventos;
 
 		//Adicao do Snapshot de Tick modificado no historico GUI
@@ -698,212 +713,18 @@ void GerenciadorGUI::sincronizarComEngine()
 	}
 }
 
-/*// Caso o grafico de Gantt seja maior que a tela do monitor, essa screenshot o contera por completo
-void GerenciadorGUI::screenShotAvancada()
-{
-	ImVec2 dimensoesTotais = m_painelGantt.dimensoesTotais();
-
-	RenderTexture2D alvo = LoadRenderTexture(dimensoesTotais.x, dimensoesTotais.y);
-	BeginTextureMode(alvo);
-	ClearBackground(RAYWHITE);
-	m_painelGantt.desenharExportacaoRaylib(dimensoesTotais.x, dimensoesTotais.y);
-	EndTextureMode();
-
-	Image imagem = LoadImageFromTexture(alvo.texture);
-	ImageFlipVertical(&imagem);
-
-	// Lohgica para nome de arquivo �nico
-	std::string prefixo = "../../../resultado_simulacao_gantt";
-	std::string extensao = ".png";
-	std::string caminhoFinal = prefixo + extensao;
-
-	int contador = 1;
-	// Enquanto o arquivo ja existir no diretohrio, incrementa o sufixo num�rico
-	while (FileExists(caminhoFinal.c_str()))
-	{
-		caminhoFinal = prefixo + "_" + std::to_string(contador) + extensao;
-		contador++;
-	}
-
-	ExportImage(imagem, caminhoFinal.c_str());
-
-	UnloadImage(imagem);
-	UnloadRenderTexture(alvo);
-
-	m_solicitarExportacao = false;
-}*/
-
-/*//versao ruim
+// Nessa funcao tiramos uma foto da nossa execucao de forma muito tecnologica pra conseguir aguentar 50 tarefas
 void GerenciadorGUI::screenShotAvancada()
 {
 	if (m_historico.empty() || m_tarefas.empty())
 		return;
 
-	int totalTicks = static_cast<int>(m_historico.size());
-	int numTarefas = static_cast<int>(m_tarefas.size());
-
-	// Define quantos ticks cabem em cada linha/bloco horizontal
-	int ticksPorBloco = 115;
-	int qtdBlocos = (totalTicks + ticksPorBloco - 1) / ticksPorBloco; // Arredonda para cima
-
-	float larguraTick = 70.0f;
-	float alturaLinha = 40.0f;
-	float margemEsq = 70.0f;
-	float margemTopo = 70.0f;
-
-	int larguraBloco = static_cast<int>(margemEsq + (ticksPorBloco * larguraTick) + 50.0f);
-	int alturaBloco = static_cast<int>(margemTopo + (numTarefas * alturaLinha) + 40.0f);
-
-	int larguraFinal = std::min(larguraBloco, 8192);
-	int alturaFinal = std::min(alturaBloco * qtdBlocos, 8192); // Limite seguro de VRAM
-
-	RenderTexture2D alvo = LoadRenderTexture(larguraFinal, alturaFinal);
-	BeginTextureMode(alvo);
-	ClearBackground(GetColor(0x1E1E1EFF)); // Fundo escuro padr�o
-
-	// Ordena as tarefas do mesmo modo que o painel faz (ID decrescente)
-	std::vector<TarefaGUI> t_Ord = m_tarefas;
-	std::sort(t_Ord.begin(), t_Ord.end(), [](const TarefaGUI& a, const TarefaGUI& b) {
-		return a.id > b.id;
-		});
-
-	size_t limiteTicks = (m_modoExecucao == 0) ? std::min(static_cast<size_t>(m_tickAtual + 1), m_historico.size()) : m_historico.size();
-
-	// Renderiza cada bloco empilhado verticalmente
-	for (int b = 0; b < qtdBlocos; b++)
-	{
-		int tickInicio = b * ticksPorBloco;
-		int tickFim = std::min(tickInicio + ticksPorBloco, totalTicks);
-
-		float offsetY = b * alturaBloco;
-		float offsetX = 0.0f;
-
-		// 1. R�gua de ticks e linhas verticais
-		for (int t = tickInicio; t < tickFim; t++)
-		{
-			int tRelativo = t - tickInicio;
-			float x = offsetX + margemEsq + (tRelativo * larguraTick);
-
-			DrawText(TextFormat("%d", t), static_cast<int>(x + 5.0f), static_cast<int>(offsetY + 10.0f), 16, DARKGRAY);
-
-			float yTop = offsetY + margemTopo;
-			float yBottom = offsetY + margemTopo + (t_Ord.size() * alturaLinha);
-			DrawLineEx(Vector2{ x, yTop }, Vector2{ x, yBottom }, 1.0f, LIGHTGRAY);
-		}
-
-		// 2. R�tulos das tarefas no eixo Y e linhas horizontais
-		for (size_t i = 0; i < t_Ord.size(); i++)
-		{
-			float y = offsetY + margemTopo + (i * alturaLinha);
-			std::string label = "Tarefa " + std::to_string(t_Ord[i].id);
-			DrawText(label.c_str(), static_cast<int>(offsetX + 10.0f), static_cast<int>(y + 5.0f), 16, DARKGRAY);
-
-			float xMin = offsetX + margemEsq;
-			float xMax = offsetX + margemEsq + ((tickFim - tickInicio) * larguraTick);
-			DrawLineEx(Vector2{ xMin, y + alturaLinha }, Vector2{ xMax, y + alturaLinha }, 1.0f, LIGHTGRAY);
-		}
-
-		// 3. Blocos de execu��o correspondentes ao intervalo
-		for (int t = tickInicio; t < tickFim; t++)
-		{
-			if (static_cast<size_t>(t) >= limiteTicks) continue;
-			const SnapshotTick& snap = m_historico[t];
-			int tRelativo = t - tickInicio;
-
-			for (size_t i = 0; i < t_Ord.size(); i++)
-			{
-				float x = offsetX + margemEsq + (tRelativo * larguraTick);
-				float y = offsetY + margemTopo + (i * alturaLinha);
-
-				const SnapshotTarefaGUI* snapCerto = nullptr;
-				for (size_t j = 0; j < snap.tarefas.size(); j++)
-				{
-					if (snap.tarefas[j].idTarefa == t_Ord[i].id)
-					{
-						snapCerto = &snap.tarefas[j];
-						break;
-					}
-				}
-
-				if (!snapCerto) continue;
-
-				if (snapCerto->estado == EstadoTarefa::EXECUTANDO)
-				{
-					std::string corHex = t_Ord[i].cor;
-					unsigned int r = 100, g = 150, b = 250;
-
-					if (!corHex.empty())
-					{
-						const char* hexStr = corHex.c_str();
-						if (hexStr[0] == '#') hexStr++;
-
-						unsigned int hexVal = 0;
-						if (sscanf(hexStr, "%x", &hexVal) == 1)
-						{
-							r = (hexVal >> 16) & 0xFF;
-							g = (hexVal >> 8) & 0xFF;
-							b = hexVal & 0xFF;
-						}
-					}
-
-					Color cor = { static_cast<unsigned char>(r), static_cast<unsigned char>(g), static_cast<unsigned char>(b), 255 };
-					DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), cor);
-					DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), BLACK);
-				}
-				else if (snapCerto->estado == EstadoTarefa::PRONTA)
-				{
-					DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), GRAY);
-				}
-				else if (snapCerto->estado == EstadoTarefa::SUSPENSA)
-				{
-					DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), BLACK);
-					DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), GRAY);
-				}
-				else if (snapCerto->estado == EstadoTarefa::TERMINADA)
-				{
-					Color cinzaEscuro = Color{ 45, 45, 45, 255 };
-					DrawRectangle(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), cinzaEscuro);
-					DrawRectangleLines(static_cast<int>(x), static_cast<int>(y), static_cast<int>(larguraTick), static_cast<int>(alturaLinha), DARKGRAY);
-				}
-			}
-		}
-	}
-
-	EndTextureMode();
-
-	Image imagem = LoadImageFromTexture(alvo.texture);
-	ImageFlipVertical(&imagem);
-
-	std::string prefixo = "../../../resultado_simulacao_gantt";
-	std::string extensao = ".png";
-	std::string caminhoFinal = prefixo + extensao;
-
-	int contador = 1;
-	while (FileExists(caminhoFinal.c_str()))
-	{
-		caminhoFinal = prefixo + "_" + std::to_string(contador) + extensao;
-		contador++;
-	}
-
-	ExportImage(imagem, caminhoFinal.c_str());
-
-	UnloadImage(imagem);
-	UnloadRenderTexture(alvo);
-
-	m_solicitarExportacao = false;
-}*/
-
-//versao svg
-void GerenciadorGUI::screenShotAvancada()
-{
-	if (m_historico.empty() || m_tarefas.empty())
-		return;
-
+	// Pega as informacoes da execucao
 	int totalTicks = static_cast<int>(m_historico.size());
 	int numTarefas = static_cast<int>(m_tarefas.size());
 	int totalCpus = (m_quantidadeCPUs != 0) ? m_quantidadeCPUs : 1;
 
-	// Dimensões do gráfico vetorial
+	// Dimensoes do grafico vetorial
 	float larguraTick = 70.0f;
 	float alturaLinha = 40.0f;
 	float margemEsq = 90.0f;
@@ -941,7 +762,8 @@ void GerenciadorGUI::screenShotAvancada()
 		std::string corHex = m_tarefas[i].cor;
 		if (corHex.empty() || corHex[0] != '#') corHex = "#6495ED";
 
-		// Limpa o '#' para usar como ID seguro no SVG
+		// Limpa o # para usar como ID seguro no SVG
+		// Pega a substring sem a #
 		std::string idCor = corHex.substr(1);
 
 		// Cria um padrão SVG hachurado único para cada cor de tarefa
@@ -961,7 +783,7 @@ void GerenciadorGUI::screenShotAvancada()
 
 	size_t limiteTicks = (m_modoExecucao == 0) ? std::min(static_cast<size_t>(m_tickAtual + 1), m_historico.size()) : m_historico.size();
 
-	// 1. Linhas e Rótulos das CPUs no Topo
+	// Linhas e Rótulos das CPUs no Topo
 	for (int c = 0; c < totalCpus; c++)
 	{
 		int idCpu = c + 1;
@@ -971,7 +793,7 @@ void GerenciadorGUI::screenShotAvancada()
 			<< "\" fill=\"#B4EEB4\" font-family=\"sans-serif\" font-size=\"13\" font-weight=\"bold\">CPU " << idCpu << "</text>\n";
 	}
 
-	// 2. Régua de Ticks e Linhas Verticais de Grade
+	// Régua de Ticks e Linhas Verticais de Grade
 	for (int t = 0; t < totalTicks; t++)
 	{
 		float x = margemEsq + (t * larguraTick);
@@ -985,7 +807,7 @@ void GerenciadorGUI::screenShotAvancada()
 			<< "\" stroke=\"#404040\" stroke-width=\"1\"/>\n";
 	}
 
-	// 3. Rótulos das Tarefas no Eixo Y e Linhas Horizontais
+	// Rótulos das Tarefas no Eixo Y e Linhas Horizontais
 	for (size_t i = 0; i < t_Ord.size(); i++)
 	{
 		float y = margemTopo + (i * alturaLinha);
@@ -1000,7 +822,7 @@ void GerenciadorGUI::screenShotAvancada()
 			<< "\" stroke=\"#404040\" stroke-width=\"1\"/>\n";
 	}
 
-	// 4. Blocos de Execução, Estados e Eventos
+	// Blocos de Execução, Estados e Eventos
 	for (int t = 0; t < static_cast<int>(limiteTicks); t++)
 	{
 		const SnapshotTick& snap = m_historico[t];
@@ -1152,13 +974,13 @@ void GerenciadorGUI::atualizarTarefasNaEngine()
 		return;
 	}
 
-	// Sanitiza todas as tarefas vindas da UI ou do arquivo de uma soh vez
+	// Garante que nao tem erros semanticos em todas as tarefas vindas da GUI ou do arquivo de uma so vez
 	for (size_t i = 0; i < m_tarefas.size(); i++)
 	{
 		validarTarefa(m_tarefas[i], "Simulacao");
 	}
 
-	if (m_tickAtual == 0) // SE ESTIVER NO IN�CIO: Limpa e recria a lista do motor
+	if (m_tickAtual == 0) // SE NAO TIVER COMECADO A SIMULACAO LIMPA O VETOR E REINICIA TUDO
 	{
 		m_motor->limparTarefas();
 
@@ -1178,7 +1000,7 @@ void GerenciadorGUI::atualizarTarefasNaEngine()
 			m_motor->addTarefa(tReal);
 		}
 	}
-	else // SE ESTIVER NO MEIO DA SIMULAcaO (TICK > 0): Repassa TODOS os par�metros editados
+	else // SE ESTIVER NO MEIO DA SIMULACAO: So repassa os parametros que foram alterados
 	{
 		auto& tarefasMotor = const_cast<std::vector<Tarefa>&>(m_motor->getTarefas());
 
@@ -1188,12 +1010,14 @@ void GerenciadorGUI::atualizarTarefasNaEngine()
 			const TarefaGUI& tGUI = m_tarefas[i];
 			bool encontrada = false;
 
+			// Procura a tarefa pra saber se eh pra editar apenas
 			for (size_t j = 0; j < tarefasMotor.size(); j++)
 			{
 				if (tarefasMotor[j].getId() == tGUI.id)
 				{
 					encontrada = true;
-					// Atualiza todos os par�metros alterados na tabela
+
+					// Atualiza todos os parametros alterados na tabela
 					tarefasMotor[j].setIngresso(tGUI.ingresso);
 					tarefasMotor[j].setDuracao(tGUI.duracao);
 					tarefasMotor[j].setPeriodo(tGUI.periodo);
@@ -1204,7 +1028,7 @@ void GerenciadorGUI::atualizarTarefasNaEngine()
 				}
 			}
 
-			// Se for uma tarefa totalmente nova adicionada durante a simulacao:
+			// Se for uma tarefa nova, adiciona ela na simulacao
 			if (!encontrada)
 			{
 				Tarefa tNova(tGUI.id,
@@ -1245,6 +1069,7 @@ void GerenciadorGUI::atualizarTarefasNaEngine()
 	}
 }
 
+// Usado para as alterações pelo usuario que nao resetam a simulacao toda, apenas alteram de um ponto em diante
 void GerenciadorGUI::reescalonarAPartirDoTickAtual()
 {
 	if (m_motor == nullptr || fonteDados != ModoFonteDados::ENGINE_REAL)
@@ -1271,19 +1096,19 @@ void GerenciadorGUI::reescalonarAPartirDoTickAtual()
 	m_totalTicks = static_cast<int>(m_historico.size());
 }
 
-// M�todo estatico para registrar erros e avisos de qualquer lugar do projeto
+// Metodo estatico para registrar erros e avisos de qualquer lugar do projeto
 void GerenciadorGUI::registrarLog(TipoLog tipo, const std::string& mensagem)
 {
 	s_logs.push_back({ tipo, mensagem });
 }
 
-// M�todo estatico para limpar os registros de log
+// Metodo estatico para limpar os registros de log
 void GerenciadorGUI::limparLogs()
 {
 	s_logs.clear();
 }
 
-// Desenha a janela ImGui �nica com o histohrico de erros e violac�es do usuario
+// Desenha a janela ImGui unica com o historico de erros e violacoes do usuario
 void GerenciadorGUI::desenharJanelaLogs()
 {
 	if (!m_exibirLogs) return;
@@ -1302,7 +1127,7 @@ void GerenciadorGUI::desenharJanelaLogs()
 
 		ImGui::Separator();
 
-		// area rolavel contendo o histohrico de mensagens
+		// area rolavel contendo o historico de mensagens
 		ImGui::BeginChild("ScrollRegionLogs", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
 		for (size_t i = 0; i < s_logs.size(); i++)
@@ -1312,14 +1137,17 @@ void GerenciadorGUI::desenharJanelaLogs()
 			// Define a cor de acordo com o tipo de mensagem
 			if (log.tipo == TipoLog::ERRO)
 			{
+				// Vermelho pras de erro
 				ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "[ERRO] %s", log.mensagem.c_str());
 			}
 			else if (log.tipo == TipoLog::AVISO)
 			{
+				// Amarelo pras de aviso
 				ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "[AVISO] %s", log.mensagem.c_str());
 			}
 			else
 			{
+				// Azul pras de info
 				ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "[INFO] %s", log.mensagem.c_str());
 			}
 		}
@@ -1365,7 +1193,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 			// Fazemos o primeiro teste para impedir de comparar com si propria
 			if (&t != &m_tarefas.at(i) && t.id == m_tarefas.at(i).id)		// ID REPETIDO EH PROIBIDO
 			{
-				registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": ID repetido (" + std::to_string(t.ingresso) + "). Ajustado para 0" + std::to_string(m_tarefas.at(i).id + 1));
+				registrarLog(TipoLog::ERRO, origem + " - Tarefa " + std::to_string(t.id) + ": ID repetido. Ajustado para" + std::to_string(m_tarefas.at(i).id + 1));
 				t.id = m_tarefas.at(i).id + 1;
 				teveCorrecao = true;
 				correcao++;
@@ -1424,7 +1252,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 		teveCorrecao = true;
 	}
 
-	// Prazo maior que o Per�odo (viola modelo de prazos restritos)
+	// Prazo maior que o Periodo nao pode tambem
 	if (t.prazo > t.periodo)
 	{
 		registrarLog(TipoLog::AVISO, origem + " - Tarefa " + std::to_string(t.id) + ": Prazo (" + std::to_string(t.prazo) + ") maior que o Periodo (" + std::to_string(t.periodo) + "). Prazo ajustado para " + std::to_string(t.periodo) + ".");
@@ -1437,8 +1265,8 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 
 	size_t tamCor = std::strlen(t.cor);
 
-	// Se o arquivo/usu�rio informou a cor no formato de 6 caracteres sem '#' (ex: "FF5733"),
-	// normalizamos adicionando o '#' automaticamente para o renderizador sem registrar log de erro.
+	// Se o arquivo/usuario informou a cor no formato de 6 caracteres sem #
+	// arrumamos adicionando o # automaticamente para o renderizador sem registrar log de erro.
 	if (tamCor == 6)
 	{
 		bool todosHex = true;
@@ -1454,6 +1282,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 		if (todosHex)
 		{
 			char bufferCor[8];
+			// Coloca o # antes da string
 			snprintf(bufferCor, sizeof(bufferCor), "#%s", t.cor);
 			strncpy(t.cor, bufferCor, sizeof(t.cor) - 1);
 			t.cor[sizeof(t.cor) - 1] = '\0';
@@ -1464,7 +1293,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 	// Validacao de ver se a cor final no formato #RRGGBB eh valida
 	bool corInvalida = false;
 
-	// Deve ter exatamente 7 caracteres e comecar com '#'
+	// Deve ter exatamente 7 caracteres e comecar com #
 	if (tamCor != 7 || t.cor[0] != '#')
 	{
 		corInvalida = true;
@@ -1474,6 +1303,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 		// Verifica se os 6 caracteres seguintes sao digitos hexadecimais validos
 		for (size_t k = 1; k < 7; k++)
 		{
+			// A funcao isxdigit checa se o digito eh um caracter hexadecimal valido
 			if (!std::isxdigit(static_cast<unsigned char>(t.cor[k])))
 			{
 				corInvalida = true;
@@ -1497,7 +1327,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 	bool corRepetida = false;
 	for (size_t i = 0; i < m_tarefas.size(); i++)
 	{
-		// Compara a cor ignorando a pr�pria tarefa
+		// Compara a cor ignorando a propria tarefa
 		if (&t != &m_tarefas.at(i) && std::string(t.cor) == std::string(m_tarefas.at(i).cor))
 		{
 			corRepetida = true;
@@ -1509,12 +1339,8 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 	{
 		std::string corAntiga = t.cor;
 
-		// Paleta de cores distintas para substituicao
-		const std::vector<std::string> paletaCoresReserva = {
-			"#FF5733", "#33FF57", "#3357FF", "#F39C12",
-			"#8E44AD", "#1ABC9C", "#D35400", "#2C3E50",
-			"#E74C3C", "#3498DB", "#2ECC71", "#F1C40F"
-		};
+		// Paleta de cores reserva para fazer a substituicao
+		const std::vector<std::string> paletaCoresReserva = { "#FF5733", "#33FF57", "#3357FF", "#F39C12", "#8E44AD", "#1ABC9C", "#D35400", "#2C3E50", "#E74C3C", "#3498DB", "#2ECC71", "#F1C40F" };
 
 		// Procura uma cor da paleta que ainda nao esteja em uso por nenhuma outra tarefa
 		std::string novaCorEncontrada = "";
@@ -1523,6 +1349,7 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 			bool emUso = false;
 			for (size_t i = 0; i < m_tarefas.size(); i++)
 			{
+				// Verifica se a nova cor ja ta sendo usada
 				if (&t != &m_tarefas.at(i) && corOpcao == std::string(m_tarefas.at(i).cor))
 				{
 					emUso = true;
@@ -1537,11 +1364,13 @@ bool GerenciadorGUI::validarTarefa(TarefaGUI& t, const std::string& origem)
 			}
 		}
 
-		// PLANO B caso todas as cores da paleta j� estejam em uso
+		// PLANO B caso todas as cores da paleta ja estejam em uso, a gente cria uma cor nova
 		if (novaCorEncontrada.empty())
 		{
+			// Multiplica o id por um numero e soma a outra pra adquirir uma cor hex baseada no id
 			unsigned int hash = static_cast<unsigned int>(t.id * 1664525 + 1013904223);
 			char bufferHex[8];
+			// Coloca no formato certo e faz os deslocamentos de bits
 			snprintf(bufferHex, sizeof(bufferHex), "#%02X%02X%02X",
 				(hash & 0xFF), ((hash >> 8) & 0xFF), ((hash >> 16) & 0xFF));
 			novaCorEncontrada = bufferHex;

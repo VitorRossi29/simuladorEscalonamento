@@ -17,6 +17,7 @@
 //Forward Declaration para avisar que a classe existe
 class MotorSimulacao;
 
+// Essa struct representa a configuracao usada na leitura de arquivos
 struct Configuracao
 {
 	TipoAlgoritmo algoritmo;
@@ -31,14 +32,14 @@ class GerenciadorGUI
 {
 public:
 
-	// Enumeracao dos tipos de log
+	// Enum class dos tipos de log
 	enum class TipoLog {
 		INFO,
 		AVISO,
 		ERRO
 	};
 
-	// Struct para armazenr cada registro de logo
+	// Struct para armazenar cada registro de log
 
 	struct ItemLog {
 		TipoLog tipo;
@@ -48,7 +49,7 @@ public:
 private:
 	MotorSimulacao* m_motor; //Guarda ponteiro do Motor Simulacao
 
-	ModoFonteDados fonteDados; //Define se vai usar o simulador real ou versao Mock
+	ModoFonteDados fonteDados; //Define se vai usar o simulador real ou versao Mock (versao com dados falsos para teste grafico)
 	ModoFonteDados m_fonteDadosAnterior; // Para detectar quando o usuario muda
 
 	std::vector<TarefaGUI> m_tarefas;
@@ -82,7 +83,7 @@ private:
 
 	// Vetor estatico que armazena o histohrico global de logs acessível por qualquer classe
 	static std::vector<ItemLog> s_logs;
-
+	bool resetSolicitado;
 
 	//PRECISAM SER OS ULTIMOS
 	PainelConfiguracao m_painelConfig;
@@ -90,7 +91,7 @@ private:
 	PainelTabelaTarefas m_painelTabela;
 	PainelGraficoGantt m_painelGantt;
 
-	// Refaz os calculos apohs mudancas nas simulacao
+	// Refaz os calculos apos mudancas nas simulacao
 	void recalcularSimulacao();
 
 	// Traduz os dados da Engine para as structs da GUI
@@ -100,35 +101,41 @@ private:
 
 	void customizarEstilo();
 
+	// Desenhar a janela de logs
 	void desenharJanelaLogs();
 
 public:
 	GerenciadorGUI(MotorSimulacao* motor = nullptr);
 
+	// Set do motor
 	void setMotor(MotorSimulacao* motor) { m_motor = motor; }
 
-	//Carrega as tarefas e o historico via GeradorMock
+	// Prepara as informacoes do GeradorMock caso o usuario queira
 	void inicializar();
 
 	//Controla o avanco automatico do tempo (m_tickAtual++) com base no 
 	//m_delayPasso quando m_emExecucaoAuto for verdadeiro
 	void atualizar(float deltaTime);
 
-	//Chama os metodos de renderizacao de cada painel filho (m_painelConfig, m_painelControles, m_painelTabela).
+	//Chama os metodos de renderizacao de cada painel
 	void renderizar();
 
+	// Carrega o arquivo colocado pelo usuario no PainelConfiguracao
 	void carregarArquivoEncontrado();
 
+	// Exporta a imagem do escalonamento para o formato SVG
 	void screenShotAvancada();
 
+	// Faz o reescalonamento a partir do tick atual da simulacao
 	void reescalonarAPartirDoTickAtual();	
 
-	// Método estatico global para adicionar mensagens de erro/log de qualquer ponto do sistema
+	// Metodo estatico global para adicionar mensagens de erro/log de qualquer ponto do sistema
 	static void registrarLog(TipoLog tipo, const std::string& mensagem);
 
-	// Método estatico para limpar o histohrico de logs
+	// Metodo estatico para limpar o historico de logs
 	static void limparLogs();
 
+	// Verifica se a tarefa esta fazendo sentido smeantico ou nao
 	bool validarTarefa(TarefaGUI& t, const std::string& origem);
 };
 
@@ -201,7 +208,7 @@ inline std::vector<std::string> dividirPorPontoEVirgula(const std::string& linha
 class Leitor
 {
 public:
-	// CORREÇÃO: Removido o escopo 'Leitor::' de dentro da própria classe
+	// Usa funcao lambda pra um determinado trecho ficar todo em maiusculo
 	std::string paraMaiusculo(const std::string& texto)
 	{
 		std::string resultado = texto;
@@ -209,15 +216,18 @@ public:
 		return resultado;
 	}
 
+	// Leitura do arquivo
 	Configuracao lerArquivo(const std::string& caminho)
 	{
 		std::ifstream arquivo(caminho);
 
+		// Avisa se tiver tido erro pra abrir o arquivo (normalmente caminho escrito errado) 
 		if (!arquivo.is_open())
 		{
 			notificarEErro("Nao foi possivel abrir o arquivo no caminho '" + caminho + "'. Verifique se o caminho esta correto.");
 		}
 
+		// A struct configuracao contem as informacoes estruturais do escalonamento, numero de cpus, algoritmo, quantum, etc
 		Configuracao configuracao;
 
 		std::string linha;
@@ -228,17 +238,20 @@ public:
 		{
 			numeroLinha++;
 
+			// Retira alguns caracteres especiais que podem ter no inicio do arquivo e atrapalhar a leitura
 			if (numeroLinha == 1 && linha.size() >= 3 && static_cast<unsigned char>(linha[0]) == 0xEF &&
 				static_cast<unsigned char>(linha[1]) == 0xBB && static_cast<unsigned char>(linha[2]) == 0xBF)
 			{
 				linha = linha.substr(3);
 			}
 
+
 			std::string linhaLimpa = aparar(linha);
 
 			if (linhaLimpa.empty())
 				continue;
 
+			// A gente divide cada linha em varios tokens pra analisar eles separadamente
 			std::vector<std::string> tokens = dividirPorPontoEVirgula(linhaLimpa);
 
 			if (!tokens.empty() && tokens.back().empty())
@@ -284,6 +297,8 @@ public:
 				{
 					notificarEErro("Linha " + std::to_string(numeroLinha) + ": Tarefa invalida. Esperados pelo menos 6 campos (id;cor;ingresso;duracao;periodo;prazo). Encontrados: " + std::to_string(tokens.size()));
 				}
+
+				// Pega as informacoes de verdade aqui e transforma em int antes obviamente
 
 				short int id = static_cast<short int>(stringParaIntSegura(tokens[0], numeroLinha, "id"));
 				std::string cor = tokens[1];

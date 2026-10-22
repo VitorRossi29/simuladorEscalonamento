@@ -190,7 +190,7 @@ bool PainelTabelaTarefas::desenharTabela(const SnapshotTick* snapshotAtual)
             const char* opcoesEstados[] = { "PRONTA", "EXECUTANDO", "SUSPENSA", "TERMINADA" };
             EstadoTarefa mapaEstadosEnum[] = { EstadoTarefa::PRONTA, EstadoTarefa::EXECUTANDO, EstadoTarefa::SUSPENSA, EstadoTarefa::TERMINADA };
 
-            int itemSelecionadoIndex = 0; // Padrao PRONTA
+            int itemSelecionadoIndex = 0; // Padrao eh a PRONTA
             for (int e = 0; e < 4; e++)
             {
                 if (mapaEstadosEnum[e] == estadoAtual)
@@ -343,7 +343,7 @@ bool PainelTabelaTarefas::desenharFormularioInsercao()
 
         return true; // Retorna true para atualizar e recalcular a simulacao
     }
-    ImGui::Text("O botao a cima permite criar tarefas com valores definidos pelo sistema!");
+    ImGui::Text("O botao acima permite criar tarefas com valores definidos pelo sistema!");
     return false;
 }
 
@@ -364,7 +364,6 @@ int PainelTabelaTarefas::proximoId()
     }
 
     return maiorId+1;
-    //return (m_tarefasRef->back().id) + 1;
 }
 
 void PainelTabelaTarefas::resetarFormulario()

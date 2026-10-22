@@ -13,13 +13,14 @@ private:
     int* m_algoritmoSelecionado;      //0: RM 1: EDF OU 2: OUTRO
 
     bool* solicitarExportacaoRef; //Holy aura
+
+    bool* solicitarReset;
 public:
 
-    PainelControles(int* tickAtual = 0, int* totalTicks = 0, bool* emExecucaoAuto = false, 
-        float* delayPasso = 0, int* modoExecucao = 0, int* algoritmoSelecionado = 0, bool* exportacao = nullptr);
+    PainelControles(int* tickAtual = 0, int* totalTicks = 0, bool* emExecucaoAuto = nullptr, 
+        float* delayPasso = 0, int* modoExecucao = 0, int* algoritmoSelecionado = 0, bool* exportacao = nullptr,
+        bool* solicitacaoDeReset = nullptr);
     //Desenha a janela Imgui::Begin(Controles) contendo os botoes
     //play pause passo a passo reset, seletor de modo e o slider de velocidade
     void renderizar();
-
-    void screenShotSimples();
 };
