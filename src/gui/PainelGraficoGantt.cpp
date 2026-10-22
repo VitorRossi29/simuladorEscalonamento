@@ -810,6 +810,7 @@ void PainelGraficoGantt::renderizar()
         desenharEventosESinais(listaDesenhos, origemQuadro, t_Ord);
         desenharAgulhaTempoAtual(listaDesenhos, origemQuadro, t_Ord.size());
 
+        ImGui::Text("Simulador de Escalonamento por Vitor Rossi e Artur Werner");
         ImGui::Text("Legenda:");
         ImGui::Text("Tarefas: Cada linha do grafico, cada retangulo eh a tarefa em um tick.");
         ImGui::Text("Ticks: Cada coluna do grafico.");
